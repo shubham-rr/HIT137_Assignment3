@@ -63,3 +63,37 @@ Create a tkinter application using Object Oriented Programming Concepts.
 ### Task 2
 
 Create a side scrolling 2D game using Pygame.
+
+_<ins>For this assignment, we will work with git branches</ins>._ 
+
+```
+For Question 1, use branch question1.
+
+For Question 2, use branch question2.
+```
+
+ Please refer to these resources for a better understanding of how git branches work:
+ * https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging
+ * https://youtu.be/QV0kVNvkMxc?si=vQCqGjELxtDHp3O9
+
+***
+
+
+To check what branches exist and which branch you are on:
+```bash
+$git branch
+  main
+* question1
+```
+
+To create a new branch for question2:
+```bash
+$git checkout -b question2
+Switched to a new branch "question2"
+```
+
+To switch branches:
+```bash
+$git checkout question1
+Switched to branch 'question1'
+```
