@@ -1,0 +1,31 @@
+Mechanic info:
+* Player:
+- Has 2 guns: 1 which is normal according to the code, another names "blast gun" deal no damage but can cause player to be pushed back a set distance.
+- Unlimited ammo but need time to reload for each gun with each set, normal gun 10 bullets with 3s reload, the blast gun has 2 ammos with 5s reload. If player stop shooting for 2s, auto reload For example: when the 
+- The bullet cannot go through terrain (will disappear when interact with terrain or tiles). While for blast gun will destroy the shield of some enemies ( or deal major damages in boss fight)
+- Player can aim 360 degrees to shoot (so they will aim all the time similar to top down shooter game
+- Can jump
+- walk is same as run
+- Gain health when eat health collectible
+- Gain point when kill enemies or collect collectible (make place holder if not exist)
+- Each bullet from player deal 1 health point to normal enemies, blast gun deal 0 except for boss which deals 5
+- Has 10 health points.
+- Add invincible layer which make player takes no hit after taken a hit for 3 seconds but the every action from the player will be interrupted (similar to jumping, got hit then fall down)
+
+*Enemies:
+Add 3 types of enemies:
+1. Flying: fly horizontally short distance. when see player, they fly straight to the player then they go back their old position whether they hit the player or not and repeat. The attack takes 1 health point from the player
+2. Shield: At front has a shield that can block the bullets, if the shield got hit by the blast gun, it disappears. The attack phase is similar to flying enemy but they affected by velocity (slower with shield, faster without it). The attack with shield takes 4 health points from the player, without it only takes 1 health point
+3. Normal: function similarly to the code
+Show and  has health bar. Flying has 5 health points, shield has 3 and normal enemy has 4.
+
+*Jump: 
+- Add jump buffering and coyote time
+- Make player ignore the platform when under its collision, when player somehow get past the collision line, the collision activate
+
+*Scoring system
+- Has 5 "0" on the screen.
+- Earn 10 point for each health point deducted from the enemies.
+- Earn 50 point when get health or collectibles.
+
+
