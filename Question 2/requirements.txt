@@ -1,0 +1,9 @@
+Plan:
+- Use the level editor to extract map data file
+- The main code will use it to display the level 
+
+Task (due Thursday)
+- 1 person crop the game assets into the img file and renamed them as index to make them as buttons
+- 1 person design the 1st level using the level editor and the template that was sent on Teams
+ 
+
