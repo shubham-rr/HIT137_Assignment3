@@ -18,23 +18,24 @@ A repository for our group assignment 3 for the HIT137 class.
 
 1. Create a virtual environment
 
-    ```bash
-    python -m venv .venv
-    ```
+   ```bash
+   python -m venv .venv
+   ```
 
-2. Activate the virtual environment
-    - On Windows:
+1. Activate the virtual environment
 
-      ```bash
-      Set-ExecutionPolicy Unrestricted -Scope Process
-      .\.venv\Scripts\activate
-      ```
+   - On Windows:
 
-    - On macOS/Linux:
+     ```bash
+     Set-ExecutionPolicy Unrestricted -Scope Process
+     .\.venv\Scripts\activate
+     ```
 
-      ```bash
-      source .venv/bin/activate
-      ```
+   - On macOS/Linux:
+
+     ```bash
+     source .venv/bin/activate
+     ```
 
    *Note: If your IDE automatically uses the virtual environment, you may not need to activate it manually. However, if you are using a terminal outside of your IDE, you will need to activate the virtual environment each time you open a new terminal session.*
 
@@ -64,22 +65,21 @@ Create a tkinter application using Object Oriented Programming Concepts.
 
 Create a side scrolling 2D game using Pygame.
 
-_<ins>For this assignment, we will work with git branches</ins>._ 
+*For this assignment, we will work with git branches.*
 
-```
 For Question 1, use branch question1.
 
 For Question 2, use branch question2.
-```
 
- Please refer to these resources for a better understanding of how git branches work:
- * https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging
- * https://youtu.be/QV0kVNvkMxc?si=vQCqGjELxtDHp3O9
+Please refer to these resources for a better understanding of how git branches work:
 
-***
+- <https://git-scm.com/book/en/v2/Git-Branching-Basic-Branching-and-Merging>
+- <https://youtu.be/QV0kVNvkMxc?si=vQCqGjELxtDHp3O9>
 
+______________________________________________________________________
 
 To check what branches exist and which branch you are on:
+
 ```bash
 $git branch
   main
@@ -87,12 +87,14 @@ $git branch
 ```
 
 To create a new branch for question2:
+
 ```bash
 $git checkout -b question2
 Switched to a new branch "question2"
 ```
 
 To switch branches:
+
 ```bash
 $git checkout question1
 Switched to branch 'question1'
