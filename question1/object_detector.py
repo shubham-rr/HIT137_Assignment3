@@ -4,11 +4,21 @@ import math
 import random
 import colorsys
 
+"""
+Model Options:
+    
+    YOLO v8n: has lower accuracy but faster detection. To use replace model_path with:
+    model_path=r"question1\model\yolov8n.pt",
+
+    YOLO v10s: has better accuracy but slower detction. To use replace model_path with:
+    model_path=r"question1\model\yolov10s.pt",
+"""
+
 
 class ObjectDetector:
     def __init__(
         self,
-        model_path=r"question1\model\yolov8n.pt",
+        model_path=r"question1\model\yolov10s.pt",
         camera_index=0,
         width=1280,
         height=720,
