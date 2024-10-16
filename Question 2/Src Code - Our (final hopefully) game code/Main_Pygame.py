@@ -14,7 +14,7 @@ SCREEN_WIDTH = 800
 SCREEN_HEIGHT = int(SCREEN_WIDTH * 0.8)
 
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Shooter')
+pygame.display.set_caption('Shoot Side-scrolling Game')
 
 #set framerate
 clock = pygame.time.Clock()
@@ -79,6 +79,9 @@ bg_start_menu = pygame.image.load('asset/img/background/bg_start_menu.png').conv
 bg_restart = pygame.image.load('asset/img/background/bg_restart.png').convert_alpha()
 bg_end = pygame.image.load('asset/img/background/bg_end.png').convert_alpha()
 
+bg_start_menu = pygame.transform.scale(bg_start_menu, (SCREEN_WIDTH, SCREEN_HEIGHT))
+bg_restart = pygame.transform.scale(bg_restart, (SCREEN_WIDTH, SCREEN_HEIGHT))
+bg_end  = pygame.transform.scale(bg_end, (SCREEN_WIDTH, SCREEN_HEIGHT))
 # Background layers for level 2 (4 layers)
 bg2_layer1 = pygame.image.load('asset/img/background/bg1_level2.png').convert_alpha()
 bg2_layer2 = pygame.image.load('asset/img/background/bg2_level2.png').convert_alpha()
@@ -230,7 +233,7 @@ class Soldier(pygame.sprite.Sprite):
         self.frame_index = 0
         self.action = 0     # Current action (e.g., idle, run)
         self.update_time = pygame.time.get_ticks()
-
+        
         #ai specific variables
         self.move_counter = 0
         self.vision = pygame.Rect(0, 0, 150, 20)
@@ -241,6 +244,7 @@ class Soldier(pygame.sprite.Sprite):
         # Gun variable regarding the player
         self.normal_gun_cooldown = 0  # Cooldown timer for normal gun
         shooting = False  # To keep track if the player is holding down the shoot button
+        self.gun = Gun()
 
         # Ammo and Reload/ Auto Reload Time
         self.normal_ammo = ammo  # Ammo for the normal gun
@@ -319,7 +323,8 @@ class Soldier(pygame.sprite.Sprite):
 
     def move(self, moving_left, moving_right, platform_rects):
         """ Handle player movement based on input. """
-        screen_scroll = 0
+        global screen_scroll
+       
         level_complete = False
         dx = 0
         dy = 0
@@ -343,6 +348,16 @@ class Soldier(pygame.sprite.Sprite):
         self.jump_handler.update(self.rect)
 
         # Check platform collisions
+        # Handle platform collisions (ignore if coming from below)
+        for platform_rect in platform_rects:
+            # Check if the player is above the platform and falling down
+            if self.rect.bottom <= platform_rect.top and self.vel_y >= 0:
+                if self.rect.colliderect(platform_rect):
+                    # Player is landing on the platform
+                    self.rect.bottom = platform_rect.top
+                    self.vel_y = 0  # Stop downward velocity (landed)
+                    self.in_air = False
+
        # Check for platform collisions, etc.
         for tile in world.obstacle_list:
             if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
@@ -366,12 +381,12 @@ class Soldier(pygame.sprite.Sprite):
         if self.gun.ammo > 0:
             if self.normal_gun_cooldown <= 0 and self.gun.ammo > 0:
                 self.create_bullet(target_pos)
-                self.gun.shoot(self.rect.center) 
+                self.gun.shoot(self.rect.center,target_pos) 
                 self.normal_gun_cooldown = self.normal_gun_shoot_interval  # Reset cooldown
                 shot_fx.play()
         
     def create_bullet(self, target_pos):
-        """ Create a bullet based on the target position and type (normal/blast). """
+        """ Create a bullet based on the target position. """
         angle = self.calculate_angle(target_pos)  # Calculate the angle to shoot
         bullet = Bullet(self.rect.center, angle)  # Create bullet instance
         bullet_group.add(bullet)  # Add bullet to the bullet group
@@ -413,7 +428,7 @@ class Soldier(pygame.sprite.Sprite):
 
     def display_score(self, screen):
         score_str = f"{self.score:05d}"
-        score_surface = self.font.render(score_str, True, (255, 255, 255))
+        score_surface = self.font.render(score_str, True, WHITE)
         screen.blit(score_surface, (10, 10))  # Position score on the top-left
         
     def check_alive(self):
@@ -425,9 +440,9 @@ class Soldier(pygame.sprite.Sprite):
 
 
     def update_animation(self):
+        global screen_scroll
         dx = 0
         dy = 0
-        screen_scroll = 0
         ANIMATION_COOLDOWN = 100
         self.image = self.animation_list[self.action][self.frame_index]
         if pygame.time.get_ticks() - self.update_time > ANIMATION_COOLDOWN:
@@ -823,7 +838,7 @@ class Enemy(pygame.sprite.Sprite):
         if self.alive:
             self.move_function()  # Call move behavior (either fly or walk)
             self.ai(player)
-            self.health_bar.draw(self.health)
+            self.health_bar.draw(screen,self.health, self.rect.centerx - 20, self.rect.y - 10)
         else:
             self.kill()  # Remove from the game if dead
 
@@ -1012,11 +1027,11 @@ class Scoring:
         self.score = 0
         self.checkpoint_score = 0
 
-    def display_score(self, screen):
+    def display_score(self, screen, x, y):
         """Display the current score on the screen."""
         score_str = f"{self.score:06d}"  # Format score to 6 digits with leading zeros
-        score_surface = self.font.render(score_str, True, (255, 255, 255))  # White color
-        screen.blit(score_surface, (10, 10))  # Position score on the screen
+        score_surface = self.font.render(score_str, True, WHITE)  # White color
+        screen.blit(score_surface, (x, y + 30))  # Position score on the screen
 
     def save_score(self, filename):
         """Save the current score to a file."""
@@ -1038,6 +1053,7 @@ score_manager = Scoring()
 class MovingPlatform(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height, direction, speed, center_x=None, center_y=None, radius=100):
         super().__init__()
+        self.image = pygame.transform.scale(img_list[78], (width, height))
         self.rect = pygame.Rect(x, y, width, height)
         self.direction = direction
         self.speed = speed
@@ -1105,26 +1121,21 @@ class ScreenFade():
 		return fade_complete
      
 def draw_crosshair(screen, player_pos, mouse_pos):
-    outer_circle_color = GREEN  # Green for outer circle
     inner_circle_color = RED  # Red for inner circle (aim indicator)
-
     # Define circle sizes
-    outer_circle_radius = 50  # Outer circle radius around the player
-    inner_circle_radius = 70  # Inner circle radius (aim indicator)
+    inner_circle_radius = 5  # Inner circle radius (aim indicator)
 
-    # Draw the outer circle fixed around the player
-    pygame.draw.circle(screen, outer_circle_color, player_pos, outer_circle_radius, 2)  # Green outer circle
 
     # Draw the inner circle on the mouse position (aim indicator)
     pygame.draw.circle(screen, inner_circle_color, mouse_pos, inner_circle_radius)  # Red circle follows mouse
 
-def display_ammo(screen, normal_ammo, blast_ammo):
-		font = pygame.font.SysFont('Montserrat', 30)
-		ammo_text = font.render(f'Ammo: {normal_ammo}/{blast_ammo}', True, (255, 255, 255))
-		screen.blit(ammo_text, (10, 50))
+def display_ammo(screen, current_ammo, max_ammo, x, y):
+		font = pygame.font.SysFont('Montserrat', 20)
+		ammo_text = font.render(f'Ammo: {current_ammo}/{max_ammo}', True, WHITE)
+		screen.blit(ammo_text, (x, y + 30))
 
 class HealthBar():
-    def __init__(self, x, y, health, max_health, width=40, height=5):
+    def __init__(self, x, y, health, max_health, width=200, height=20):
         self.x = x
         self.y = y
         self.health = health
@@ -1132,14 +1143,18 @@ class HealthBar():
         self.width = width  # Add width for flexibility
         self.height = height  # Add height for flexibility
 
-    def draw(self, health):
+    def draw(self, screen, health, x, y):
         #update with new health
         self.health = health
         #calculate health ratio
         ratio = self.health / self.max_health
-        pygame.draw.rect(screen, BLACK, (self.x - 2, self.y - 2, 154, 24))
-        pygame.draw.rect(screen, RED, (self.x, self.y, 150, 20))
-        pygame.draw.rect(screen, GREEN, (self.x, self.y, 150 * ratio, 20))
+        font = pygame.font.SysFont('Futura', 30)  # Define the font
+        health_text = font.render(f"Health: {self.health}/{self.max_health}", True, BLUE)
+        screen.blit(health_text, (x, y - 35))  # Display health text above the bar
+
+        pygame.draw.rect(screen, BLACK, (x - 2, y - 2, self.width + 4, self.height + 4))
+        pygame.draw.rect(screen, RED, (x, y, self.width, self.height))
+        pygame.draw.rect(screen, GREEN, (x, y, self.width * ratio, self.height))
 
 
     def display_health(screen, health):
@@ -1189,10 +1204,12 @@ class Collectible(pygame.sprite.Sprite):
         self.kill()
 
 class Wall(pygame.sprite.Sprite):
-    def __init__(self, img, x, y):
+    def __init__(self, img, x, y, width=None, height=None):
         pygame.sprite.Sprite.__init__(self)
         self.image = img
         self.rect = self.image.get_rect()
+        if width and height:
+            self.image = pygame.transform.scale(self.image, (width, height))
         self.rect.x = x
         self.rect.y = y
 
@@ -1292,7 +1309,7 @@ class Water(pygame.sprite.Sprite):
 
 	def update(self):
 		self.rect.x += screen_scroll
-
+        
 class Exit(pygame.sprite.Sprite):
 	def __init__(self, img, x, y):
 		pygame.sprite.Sprite.__init__(self)
@@ -1302,7 +1319,7 @@ class Exit(pygame.sprite.Sprite):
 
 	def update(self):
 		self.rect.x += screen_scroll
-
+        
 
 class ItemBox(pygame.sprite.Sprite):
     def __init__(self, item_type, x, y):
@@ -1314,7 +1331,13 @@ class ItemBox(pygame.sprite.Sprite):
     
     def update(self):
         # Scroll
-        self.rect.x += screen_scroll
+        global screen_scroll
+        global screen_scroll
+        # Ensure screen_scroll is not a tuple
+        if isinstance(screen_scroll, tuple):
+            screen_scroll = screen_scroll[0]
+            self.rect.x += screen_scroll
+        
         # Check if the player has picked up the box
         if pygame.sprite.collide_rect(self, player):
             # Check what kind of box it was
@@ -1691,7 +1714,7 @@ class Projectile(pygame.sprite.Sprite):
             self.kill()
 
 # Initialize boss level
-boss, platform_group = load_boss_level()
+boss, platform_group, wall_group = load_boss_level()
                                  
 def update_boss_level(screen, player, boss, platform_group):
     draw_bg_4()  # Draw the background starting from (0, 0)
@@ -1712,7 +1735,6 @@ def update_boss_level(screen, player, boss, platform_group):
 
     # Update and draw boss
     boss.update(player)
-    boss.draw(screen)
     boss.draw_health_bar_on_top(screen)
     
     # If the boss enters phase 2, trigger platform spawning
@@ -1835,7 +1857,7 @@ credits_text = [
     "Special thanks to all the playtesters",
 ]
 
-font = pygame.font.SysFont('Times New Roman', 30)
+font = pygame.font.SysFont('Times New Roman', 12)
 scrolling_credits = ScrollingText(credits_text, font, WHITE, 10, (SCREEN_HEIGHT // 3) - 30, 1, SCREEN_WIDTH)
 
 
@@ -1918,7 +1940,7 @@ while running:
         screen_scroll = player.move(moving_left, moving_right, platform_rects)
     
         # Update game elements
-        platforms_group.update(player)  # Pass player to check for breaking or interactions
+        platforms_group.update()  # Pass player to check for breaking or interactions
         platforms_group.draw(screen)
 
         # Collision Handling
@@ -1955,6 +1977,7 @@ while running:
         # Shooting logic (if the player is shooting)
         if shoot and player.gun.can_shoot:
             player.shoot(mouse_pos)  # Shoot at the mouse position
+            player.normal_gun_cooldown = player.normal_gun_shoot_interval
             shot_fx.play()
             # Display the score on the screen during the game loop  
 
@@ -1989,7 +2012,7 @@ while running:
             # Shooting bullets
             if shoot and player.shoot_cooldown == 0:
                 angle = math.atan2(mouse_pos[1] - player.rect.centery, mouse_pos[0] - player.rect.centerx)
-                player.create_bullet(angle)
+                player.create_bullet(mouse_pos)
                 shot_fx.play()
                 player.shoot_cooldown = 15  # Cooldown to control fire rate
             elif player.shoot_cooldown > 0:
@@ -2005,7 +2028,7 @@ while running:
                 player.update_action(0)  # Idle
 
             # Move player and handle screen scroll
-            screen_scroll, level_complete = player.move(moving_left, moving_right)
+            screen_scroll, level_complete = player.move(moving_left, moving_right, platform_rects)
             bg_scroll -= screen_scroll
 
             # Level completion handling
@@ -2133,12 +2156,12 @@ while running:
                         bullet.kill()
 
         # --- HUD Elements ---
-        health_bar.draw(player.health)
-        score_manager.display_score(screen)
+        health_bar.draw(screen,player.health,10, 10)
+        score_manager.display_score(screen, x, y)
         HealthBar.display_health(screen, player.health)
-        display_ammo(screen, player.gun.ammo, player.gun.ammo)
+        display_ammo(screen, player.gun.ammo, player.gun.max_ammo, 10, 10 + health_bar.height)
         
-
+        
         # Draw crosshair
         draw_crosshair(screen, player.rect.center, pygame.mouse.get_pos())
      
