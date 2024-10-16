@@ -62,7 +62,8 @@ boss_hit_fx.set_volume(0.05)
 game_over_fx = pygame.mixer.Sound('audio/shot.wav')
 game_over_fx.set_volume(0.05)
 
-
+bg_level4 = pygame.image.load('assets/img/background/bg_level4.png').convert()
+bg_level4 = pygame.transform.scale(bg_level4, (SCREEN_WIDTH, SCREEN_HEIGHT))
 #load images
 #button images
 start_img = pygame.image.load('asset/img/start_btn.png').convert_alpha()
@@ -499,7 +500,7 @@ class Bullet(pygame.sprite.Sprite):
         self.range = range  # Distance it can travel
         self.distance_travelled = 0
         self.angle = angle  # Angle for movement
-        self.damage = 2
+        self.damage = 2.5
 
     def update(self):
         # Move the bullet in the direction of the angle
@@ -636,6 +637,9 @@ class Enemy(pygame.sprite.Sprite):
         self.animation_list = []  # Add animations if necessary
         self.move_function = self.walk
 
+         # Create a slim health bar for this enemy
+        self.health_bar = HealthBar(self.rect.x, self.rect.y - 10, self.health, self.max_health, width=40, height=5)
+
     def ai(self, player):
         """AI behavior for the enemy."""
         if self.alive and player.alive:
@@ -709,16 +713,20 @@ class Enemy(pygame.sprite.Sprite):
             self.update_action(3)  # Death animation
 
     def update_animation(self):
-        # Update animation logic if needed
-        pass
-
-
-    def draw_health_bar(self, screen):
-        bar_length = 40
-        bar_height = 5
-        fill = (self.health / self.max_health) * bar_length
-        pygame.draw.rect(screen, (255, 0, 0), (self.rect.centerx - bar_length // 2, self.rect.top - 10, bar_length, bar_height))
-        pygame.draw.rect(screen, (0, 255, 0), (self.rect.centerx - bar_length // 2, self.rect.top - 10, fill, bar_height))
+        #update animation
+        ANIMATION_COOLDOWN = 100
+        #update image depending on current frame
+        self.image = self.animation_list[self.action][self.frame_index]
+        #check if enough time has passed since the last update
+        if pygame.time.get_ticks() - self.update_time > ANIMATION_COOLDOWN:
+            self.update_time = pygame.time.get_ticks()
+            self.frame_index += 1
+        #if the animation has run out the reset back to the start
+        if self.frame_index >= len(self.animation_list[self.action]):
+            if self.action == 3:
+                self.frame_index = len(self.animation_list[self.action]) - 1
+            else:
+                self.frame_index = 0
 
     def take_damage(self, amount):
         self.previous_health = self.health  # Store current health as previous health
@@ -736,12 +744,14 @@ class Enemy(pygame.sprite.Sprite):
         if self.alive:
             self.move_function()  # Call move behavior (either fly or walk)
             self.ai(player)
+            self.health_bar.draw(self.health)
         else:
             self.kill()  # Remove from the game if dead
 
     def draw(self, screen):
         screen.blit(pygame.transform.flip(self.image, self.direction == -1, False), self.rect)
-
+        if self.alive:
+            self.health_bar.draw(screen, self.health, self.rect.centerx - 20, self.rect.y - 10)  # Adjust x, y as needed 
 class FlyingEnemy(Enemy):
     def __init__(self, x, y, speed=3, health=5):
         super().__init__()
@@ -884,7 +894,7 @@ class FlyingEnemy(Enemy):
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
-    
+     
 
 class NormalEnemy(Enemy):
     def __init__(self, x, y, speed=2, health=4):
@@ -1024,26 +1034,28 @@ def display_ammo(screen, normal_ammo, blast_ammo):
 		screen.blit(ammo_text, (10, 50))
 
 class HealthBar():
-	def __init__(self, x, y, health, max_health):
-		self.x = x
-		self.y = y
-		self.health = health
-		self.max_health = max_health
+    def __init__(self, x, y, health, max_health, width=40, height=5):
+        self.x = x
+        self.y = y
+        self.health = health
+        self.max_health = max_health
+        self.width = width  # Add width for flexibility
+        self.height = height  # Add height for flexibility
 
-	def draw(self, health):
-		#update with new health
-		self.health = health
-		#calculate health ratio
-		ratio = self.health / self.max_health
-		pygame.draw.rect(screen, BLACK, (self.x - 2, self.y - 2, 154, 24))
-		pygame.draw.rect(screen, RED, (self.x, self.y, 150, 20))
-		pygame.draw.rect(screen, GREEN, (self.x, self.y, 150 * ratio, 20))
+    def draw(self, health):
+        #update with new health
+        self.health = health
+        #calculate health ratio
+        ratio = self.health / self.max_health
+        pygame.draw.rect(screen, BLACK, (self.x - 2, self.y - 2, 154, 24))
+        pygame.draw.rect(screen, RED, (self.x, self.y, 150, 20))
+        pygame.draw.rect(screen, GREEN, (self.x, self.y, 150 * ratio, 20))
 
-	
-	def display_health(screen, health):
-		font = pygame.font.SysFont('Futura', 30)
-		health_text = font.render(f'Health: {health}', True, (255, 255, 255))
-		screen.blit(health_text, (10, 10))
+
+    def display_health(screen, health):
+        font = pygame.font.SysFont('Futura', 30)
+        health_text = font.render(f'Health: {health}', True, (255, 255, 255))
+        screen.blit(health_text, (10, 10))
 
 	
 class Collectible(pygame.sprite.Sprite):
@@ -1284,6 +1296,15 @@ class Boss(NormalEnemy):
         self.speed = speed
         self.health = health
         self.max_health = health
+        self.health_bar = None  # Remove the health bar from the enemy display
+
+        # Animation attributes
+        self.animation_list = []
+        self.frame_index = 0
+        self.action = 0  # The current action (e.g., 0 for move)
+        self.update_time = pygame.time.get_ticks()
+        # Load the boss animations
+        self.load_animations()
 
         #Variable for phase 1
         self.phase = 1   # Boss phases to change behavior
@@ -1301,6 +1322,48 @@ class Boss(NormalEnemy):
         self.shield_radius = 50  # Distance from the boss to the shield
         self.projectile_group = pygame.sprite.Group()
 
+        # Platform teleporting attributes for phase 2
+        self.current_platform = None
+        self.platform_switch_timer = 0
+
+    def draw_health_bar_on_top(self, screen):
+        """Draw the boss health bar at the top of the screen."""
+        bar_length = 300
+        bar_height = 20
+        fill = (self.health / self.max_health) * bar_length
+
+        # Background for health bar
+        pygame.draw.rect(screen, (0, 0, 0), (screen.get_width() // 2 - bar_length // 2, 20, bar_length, bar_height))
+        # Health bar (filled part)
+        pygame.draw.rect(screen, BLUE, (screen.get_width() // 2 - bar_length // 2, 20, bar_length, bar_height))
+        pygame.draw.rect(screen, RED, (screen.get_width() // 2 - bar_length // 2, 20, fill, bar_height))
+
+    def load_animations(self):
+        """Load the boss animation frames into animation_list"""
+        animation_types = ['Move']
+        for animation in animation_types:
+            temp_list = []
+            num_of_frames = len(os.listdir(f'assets/img/boss/{animation}'))  # Assuming your frames are stored in a folder
+            for i in range(num_of_frames):
+                img = pygame.image.load(f'assets/img/boss/{animation}/{i}.png').convert_alpha()
+                temp_list.append(img)
+            self.animation_list.append(temp_list)
+
+        # Set the initial image for the boss from the first frame of the move animation
+        self.image = self.animation_list[self.action][self.frame_index]
+
+    def update_animation(self):
+        """Update the boss animation frame based on the current action."""
+        # Update image to the next frame
+        self.image = self.animation_list[self.action][self.frame_index]
+        if pygame.time.get_ticks() - self.update_time > 100:  # Adjust frame rate (100 ms per frame)
+            self.update_time = pygame.time.get_ticks()
+            self.frame_index += 1
+
+        # Loop the animation
+        if self.frame_index >= len(self.animation_list[self.action]):
+            self.frame_index = 0
+
     def update(self, player, platform):
         """Handles boss behavior, including phase transitions."""
         if self.health <= self.max_health // 2 and self.phase == 1:
@@ -1309,48 +1372,75 @@ class Boss(NormalEnemy):
         if self.phase == 1:
             self.charge_at_player(player)
         elif self.phase == 2:
+            self.switch_platform_if_needed(platform_group)
             self.stand_on_platform()
             self.spin_shield()
             self.shoot_projectiles_from_shield()
 
+        # Update animations
+        self.update_animation()
+
         super().update(player)
 
-    def enter_phase_two(self, platform):
+    def enter_phase_two(self, platform_group):
         """Transition to phase 2: Boss moves to the platform and activates a shield."""
         self.phase = 2
-        self.platform = platform  # The platform the boss stands on
-        self.rect.centerx = platform.rect.centerx  # Move the boss to the platform
-        self.rect.bottom = platform.rect.top  # Place boss on the platform
         self.has_shield = True  # Activate shield in phase 2
+
+        # The boss starts on one of the two moving platforms
+        moving_platforms = [platform for platform in platform_group if isinstance(platform, MovingPlatform)]
+        if moving_platforms:
+            self.current_platform = random.choice(moving_platforms)
+            self.rect.centerx = self.current_platform.rect.centerx
+            self.rect.bottom = self.current_platform.rect.top
+            self.platform_switch_timer = pygame.time.get_ticks()  # Start the timer for platform switching
 
     def stand_on_platform(self):
         """Boss stays on the moving platform in phase 2."""
-        if self.platform:
-            self.rect.x = self.platform.rect.x  # Move horizontally with the platform
-        platform_collision = pygame.sprite.spritecollide(self, platform_group, False)
+        if self.phase == 2 and self.current_platform:
+            # Make sure the boss moves with the current platform horizontally
+            self.rect.x = self.current_platform.rect.x
+            self.rect.bottom = self.current_platform.rect.top
 
-        if platform_collision:
-            platform = platform_collision[0]  # The platform the boss is on
+            # Detect platform collision with walls and reverse direction if needed
+            if pygame.sprite.spritecollide(self.current_platform, wall_group, False):
+                self.current_platform.speed = -self.current_platform.speed  # Reverse platform direction on collision
+        
+    def switch_platform_if_needed(self, platform_group):
+        """Switch the boss's position between the two platforms after 5 seconds."""
+        # If the boss has been on the current platform for 5 seconds, teleport to the other platform
+        if pygame.time.get_ticks() - self.platform_switch_timer > 6000:  # 5 seconds
+            moving_platforms = [platform for platform in platform_group if isinstance(platform, MovingPlatform)]
+            if moving_platforms:
+                other_platforms = [p for p in moving_platforms if p != self.current_platform]
+                if other_platforms:
+                    new_platform = random.choice(other_platforms)
+                    self.rect.centerx = new_platform.rect.centerx
+                    self.rect.bottom = new_platform.rect.top
+                    self.current_platform = new_platform
+                    self.platform_switch_timer = pygame.time.get_ticks()  # Reset the timer
 
-            # Make the boss stand on the platform
-            self.rect.bottom = platform.rect.top
-            self.rect.x = platform.rect.x  # Move with the platform horizontally
-
-            # Check for platform collision with walls
-            if pygame.sprite.spritecollide(platform, wall_group, False):
-                platform.speed = -platform.speed  # Reverse platform direction on wall collision
-   
-    def charge_at_player(self, player):
+    def charge_at_player(self, player, platform_group):
         """Boss gradually charges towards the player with increasing speed in phase 1."""
         # Determine direction based on the player's position
-        if player.rect.x < self.rect.x:
-            self.direction = -1  # Move left
-        else:
-            self.direction = 1  # Move right
+        # Boss will only charge if the player is on the same platform or ground
+        player_on_ground = player.rect.bottom >= SCREEN_HEIGHT - TILE_SIZE
+
+        if player_on_same_platform or player_on_ground:
+            # Determine direction based on the player's position
+            if player.rect.x < self.rect.x:
+                self.direction = -1  # Move left
+            else:
+                self.direction = 1  # Move right
         
+        player_on_same_platform = False
+        for platform in platform_group:
+            if platform.rect.colliderect(player.rect) and platform.rect.colliderect(self.rect):
+                player_on_same_platform = True
         # Check if the player is in front of the boss
         player_in_front = (player.rect.x < self.rect.x and self.direction == -1) or \
                           (player.rect.x > self.rect.x and self.direction == 1)
+        
         # If the player is in front, accelerate towards them
         if player_in_front:
             self.charging = True
@@ -1446,32 +1536,56 @@ class Boss(NormalEnemy):
             5  # Thickness of the arc's border
         )
 
-    def draw_health_bar(self, screen):
-        # Draw the health bar above the boss
-        bar_length = 150
-        bar_height = 10
-        fill = (self.health / self.max_health) * bar_length
-        pygame.draw.rect(screen, RED, (self.rect.centerx - bar_length // 2, self.rect.top - 20, bar_length, bar_height))
-        pygame.draw.rect(screen, GREEN, (self.rect.centerx - bar_length // 2, self.rect.top - 20, fill, bar_height))
     
     def draw(self, screen):
         screen.blit(self.image, self.rect)
+        self.draw_health_bar_on_top(screen)
 
-    # Function to initialize the boss fight level
 def load_boss_level():
-    boss = Boss(x=400, y=300, speed=3, health=30)
-    moving_platform_left = MovingPlatform(50, 500, 100, 20, 'vertical', 2)
-    moving_platform_right = MovingPlatform(650, 500, 100, 20, 'vertical', 2)            
-    platform_group = pygame.sprite.Group()
-    platform_group.add(moving_platform_left, moving_platform_right)
-    return boss, platform_group
+    "Initialize the boss fight level"
+    boss = Boss(x=SCREEN_WIDTH // 2, y=SCREEN_HEIGHT - TILE_SIZE * 4, speed=3, health=30)
+    
+    # Create the ground (floor tiles) that cover the width of the screen
+    ground_tiles = []
+    for i in range(0, SCREEN_WIDTH // TILE_SIZE):
+        ground_tile = Wall(img_list[31], i * TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE)  # Assuming tile ID 30 is the ground tile
+        ground_tiles.append(ground_tile)
+        wall_group.add(ground_tile)
 
+    # Create walls on both sides (left and right)
+    left_wall = Wall(img_list[30], 0, SCREEN_HEIGHT - TILE_SIZE * 10)
+    right_wall = Wall(img_list[30], SCREEN_WIDTH - TILE_SIZE, SCREEN_HEIGHT - TILE_SIZE * 10)
+    wall_group.add(left_wall)
+    wall_group.add(right_wall)
+    
+    # Create two stationary platforms in phase 1
+    platform_group = pygame.sprite.Group()
+    platform1 = Wall(img_list[30], SCREEN_WIDTH // 4 - TILE_SIZE * 2, SCREEN_HEIGHT - TILE_SIZE * 6, TILE_SIZE * 4, TILE_SIZE)  # Left platform
+    platform2 = Wall(img_list[30], SCREEN_WIDTH * 3 // 4, SCREEN_HEIGHT - TILE_SIZE * 6, TILE_SIZE * 4, TILE_SIZE)  # Right platform
+    platform_group.add(platform1)
+    platform_group.add(platform2)
+
+    return boss, platform_group, wall_group
+
+    
+
+def enter_boss_phase_two(boss, platform_group):
+    # Add two vertical platforms on both sides
+    moving_platform_left = MovingPlatform(50, SCREEN_HEIGHT - TILE_SIZE * 4, TILE_SIZE * 6, TILE_SIZE * 2, 'vertical', 2)
+    moving_platform_right = MovingPlatform(SCREEN_WIDTH - 150, SCREEN_HEIGHT - TILE_SIZE * 4, TILE_SIZE * 6, TILE_SIZE * 2, 'vertical', 2)
+    platform_group.add(moving_platform_left)
+    platform_group.add(moving_platform_right)
+    
+    boss.enter_phase_two(platform_group)
+    # Activate phase 2 mechanics for the boss
+    boss.phase = 2    
+    
 class Projectile(pygame.sprite.Sprite):
     "Projectile for boss at phase 2"
     def __init__(self, x, y, angle):
         super().__init__()
-        self.image = pygame.Surface((10, 10))
-        self.image.fill(GREEN)  
+        self.image = projectile_img
+        self.image = pygame.transform.scale(self.image, (20, 20))
         self.rect = self.image.get_rect(center=(x, y))
         self.speed = 5
         self.angle = angle  # Set the projectile's angle of movement
@@ -1487,19 +1601,34 @@ class Projectile(pygame.sprite.Sprite):
 
 # Initialize boss level
 boss, platform_group = load_boss_level()
-
-
-                                       
+                                 
 def update_boss_level(screen, player, boss, platform_group):
-    screen.fill((0, 0, 0))  # Black background
-    for platform in platform_group:
-        platform.update()
+    screen.blit(bg_level4, (0, 0))  # Draw the background starting from (0, 0)
 
-    platform_group.draw(screen)
-    boss.update(player, screen.get_width())
+    # Draw the ground and walls
+    wall_group.draw(screen)
+
+    # Phase 2: Platforms appear
+    if boss.phase == 2:
+        platform_group.update()
+        platform_group.draw(screen)
+
+        # Handle boss shield and projectile logic in phase 2
+        boss.spin_shield()  # If spinning shield is part of phase 2
+        boss.shoot_projectiles_from_shield()
+        boss.projectile_group.update()
+        boss.projectile_group.draw(screen)
+
+    # Update and draw boss
+    boss.update(player)
     boss.draw(screen)
+    boss.draw_health_bar_on_top(screen)
+    
+    # If the boss enters phase 2, trigger platform spawning
+    if boss.health <= boss.max_health // 2 and boss.phase == 1:
+        enter_boss_phase_two(boss, platform_group)
+
     boss.draw_shield(screen)
-    boss.draw_health_bar(screen)
 
        
 # Create a function to display the end screen after defeating the boss
@@ -1703,10 +1832,7 @@ while running:
                     world = World()
                     player, health_bar = world.process_data(world_data)
                 elif level == 4:  # Load Boss Level
-                    boss = Boss(400, 200, speed=3, health=30)  # Stats for the boss
-                    moving_platform_left = MovingPlatform(100, SCREEN_HEIGHT - 100, 100, 20, 'vertical', 2)
-                    moving_platform_right = MovingPlatform(SCREEN_WIDTH - 200, SCREEN_HEIGHT - 100, 100, 20, 'vertical', 2)
-                    platform_group.add(moving_platform_left, moving_platform_right)
+                    boss, platform_group = load_boss_level()
                     world_data = reset_level()  # Empty the current world and create a boss fight environment
                     world = World()  # Initialize an empty world for this level
                     player, health_bar = world.process_data(world_data)
