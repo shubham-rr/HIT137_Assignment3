@@ -1,4 +1,4 @@
-import pygame, math, os
+import pygame, math, os, textwrap
 import json # For saving/loading scores
 from pygame import mixer
 import random
@@ -26,7 +26,7 @@ SCROLL_THRESH = 200
 ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
-TILE_TYPES = 26
+TILE_TYPES = 120
 MAX_LEVELS = 4
 screen_scroll = 0
 bg_scroll = 0
@@ -62,22 +62,51 @@ boss_hit_fx.set_volume(0.05)
 game_over_fx = pygame.mixer.Sound('audio/shot.wav')
 game_over_fx.set_volume(0.05)
 
-bg_level4 = pygame.image.load('assets/img/background/bg_level4.png').convert()
-bg_level4 = pygame.transform.scale(bg_level4, (SCREEN_WIDTH, SCREEN_HEIGHT))
+# bg_level4 = pygame.image.load('asset/img/background/bg_level4.png').convert_alpha()
+# bg_level4 = pygame.transform.scale(bg_level4, (SCREEN_WIDTH, SCREEN_HEIGHT))
 #load images
 #button images
 start_img = pygame.image.load('asset/img/start_btn.png').convert_alpha()
 exit_img = pygame.image.load('asset/img/exit_btn.png').convert_alpha()
 restart_img = pygame.image.load('asset/img/restart_btn.png').convert_alpha()
 #background
-pine1_img = pygame.image.load('asset/img/Background/pine1.png').convert_alpha()
-pine2_img = pygame.image.load('asset/img/Background/pine2.png').convert_alpha()
-mountain_img = pygame.image.load('asset/img/Background/mountain.png').convert_alpha()
-sky_img = pygame.image.load('asset/img/Background/sky_cloud.png').convert_alpha()
+pine1_img = pygame.image.load('asset/img/background/pine1.png').convert_alpha()
+pine2_img = pygame.image.load('asset/img/background/pine2.png').convert_alpha()
+mountain_img = pygame.image.load('asset/img/background/mountain.png').convert_alpha()
+sky_img = pygame.image.load('asset/img/background/sky_cloud.png').convert_alpha()
+#menu background
+bg_start_menu = pygame.image.load('asset/img/background/bg_start_menu.png').convert_alpha()
+bg_restart = pygame.image.load('asset/img/background/bg_restart.png').convert_alpha()
+bg_end = pygame.image.load('asset/img/background/bg_end.png').convert_alpha()
+
+# Background layers for level 2 (4 layers)
+bg2_layer1 = pygame.image.load('asset/img/background/bg1_level2.png').convert_alpha()
+bg2_layer2 = pygame.image.load('asset/img/background/bg2_level2.png').convert_alpha()
+bg2_layer3 = pygame.image.load('asset/img/background/bg3_level2.png').convert_alpha()
+bg2_layer4 = pygame.image.load('asset/img/background/bg4_level2.png').convert_alpha()
+
+# Background layers for level 3 (6 layers)
+bg3_layer1 = pygame.image.load('asset/img/background/bg1_level3.png').convert_alpha()
+bg3_layer2 = pygame.image.load('asset/img/background/bg2_level3.png').convert_alpha()
+bg3_layer3 = pygame.image.load('asset/img/background/bg3_level3.png').convert_alpha()
+bg3_layer4 = pygame.image.load('asset/img/background/bg4_level3.png').convert_alpha()
+bg3_layer5 = pygame.image.load('asset/img/background/bg5_level3.png').convert_alpha()
+bg3_layer6 = pygame.image.load('asset/img/background/bg6_level3.png').convert_alpha()
+
+# Background layers for level 4 (3 layers)
+bg4_layer1 = pygame.image.load('asset/img/background/bg1_level4.png').convert_alpha()
+bg4_layer2 = pygame.image.load('asset/img/background/bg2_level4.png').convert_alpha()
+bg4_layer3 = pygame.image.load('asset/img/background/bg3_level4.png').convert_alpha()
+
+# Scale the backgrounds to fit the screen
+bg4_layer1 = pygame.transform.scale(bg4_layer1, (SCREEN_WIDTH, SCREEN_HEIGHT))
+bg4_layer2 = pygame.transform.scale(bg4_layer2, (SCREEN_WIDTH, SCREEN_HEIGHT))
+bg4_layer3 = pygame.transform.scale(bg4_layer3, (SCREEN_WIDTH, SCREEN_HEIGHT))
+
 #store tiles in a list
 img_list = []
 for x in range(TILE_TYPES):
-	img = pygame.image.load(f'asset/img/Tile/{x}.png')
+	img = pygame.image.load(f'asset/img/tile/{x}.png')
 	img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
 	img_list.append(img)
 #bullet
@@ -122,25 +151,59 @@ def draw_bg():
 		screen.blit(pine1_img, ((x * width) - bg_scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 150))
 		screen.blit(pine2_img, ((x * width) - bg_scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
 
+def draw_bg_2():
+	screen.fill(164, 118, 157)
+	width = sky_img.get_width()
+	for x in range(5):
+		screen.blit(bg3_layer4, ((x * width) - bg_scroll * 0.5, 0))
+		screen.blit(bg3_layer3, ((x * width) - bg_scroll * 0.6, SCREEN_HEIGHT - bg3_layer3.get_height() - 300))
+		screen.blit(bg3_layer2, ((x * width) - bg_scroll * 0.7, SCREEN_HEIGHT - bg3_layer2.get_height() - 150))
+		screen.blit(bg3_layer1, ((x * width) - bg_scroll * 0.8, SCREEN_HEIGHT - bg3_layer1.get_height()))
+
+def draw_bg_3():
+	screen.fill(70, 52, 94)
+	width = sky_img.get_width()
+	for x in range(7):
+            screen.blit(bg3_layer1, ((x * width) - bg_scroll * 0.5, 0))
+            screen.blit(bg3_layer2, ((x * width) - bg_scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 500))
+            screen.blit(bg3_layer3, ((x * width) - bg_scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 400))
+            screen.blit(bg3_layer4, ((x * width) - bg_scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height() - 300))
+            screen.blit(bg3_layer5, ((x * width) - bg_scroll * 0.9, SCREEN_HEIGHT - bg3_layer2.get_height() - 150))
+            screen.blit(bg3_layer6, ((x * width) - bg_scroll * 1, SCREEN_HEIGHT - pine2_img.get_height()))
+
+def draw_bg_4():
+    # Draw the background layers in order
+    screen.blit(bg4_layer1, (0, 0))  # Layer 1
+    screen.blit(bg4_layer2, (0, 0))  # Layer 2
+    screen.blit(bg4_layer3, (0, 0))
 
 #function to reset level
 def reset_level():
-	enemy_group.empty()
-	bullet_group.empty()
-	grenade_group.empty()
-	explosion_group.empty()
-	item_box_group.empty()
-	decoration_group.empty()
-	water_group.empty()
-	exit_group.empty()
+    enemy_group.empty()
+    bullet_group.empty()
+    grenade_group.empty()
+    explosion_group.empty()
+    item_box_group.empty()
+    decoration_group.empty()
+    water_group.empty()
+    exit_group.empty()
+    platform_group.empty()    # For dynamically created platforms (e.g., phase 2 platforms in boss fight)
+    boss_group.empty()        # If you have a group to track the boss entity
+    projectile_group.empty()  # If the boss shoots projectiles
 
-	#create empty tile list
-	data = []
-	for row in range(ROWS):
-		r = [-1] * COLS
-		data.append(r)
+    # Reset the player's stats if necessary
+    player.health = player.max_health
+    player.ammo = player.max_ammo
+    score_manager.reset_score()
 
-	return data
+    # Create empty tile list
+    data = []
+    for row in range(ROWS):
+        r = [-1] * COLS
+        data.append(r)
+
+    return data
+
 
 
 class Soldier(pygame.sprite.Sprite):
@@ -156,6 +219,8 @@ class Soldier(pygame.sprite.Sprite):
         self.max_health = self.health
         self.invincible = False  # Invincibility status
         self.invincible_timer = 0  # Duration of invincibility
+        self.flicker_timer = 0  # Timer for controlling the flicker effect
+        self.flicker_interval = 6  # How many frames to flicker
         self.direction = 1
         self.vel_y = 0
         self.jump = False
@@ -174,7 +239,6 @@ class Soldier(pygame.sprite.Sprite):
         self.jump_handler = Jump()
 
         # Gun variable regarding the player
-        self.gun = Gun("pistol")
         self.normal_gun_cooldown = 0  # Cooldown timer for normal gun
         shooting = False  # To keep track if the player is holding down the shoot button
 
@@ -209,9 +273,9 @@ class Soldier(pygame.sprite.Sprite):
         animation_types = ['Idle', 'Run', 'Jump', 'Death']
         for animation in animation_types:
             temp_list = []
-            num_of_frames = len(os.listdir(f'assets/img/animation/{self.char_type}/{animation}'))        # Count frames in the directory
+            num_of_frames = len(os.listdir(f'asset/img/animation/{self.char_type}/{animation}'))        # Count frames in the directory
             for i in range(num_of_frames):
-                img = pygame.image.load(f'assets/img/animation/{self.char_type}/{animation}/{i}.png').convert_alpha()       # Load image
+                img = pygame.image.load(f'asset/img/animation/{self.char_type}/{animation}/{i}.png').convert_alpha()       # Load image
                 img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))       # Scale image
                 temp_list.append(img)   # Append the image to the temporary list
             self.animation_list.append(temp_list)       # Add animation frames to the main list
@@ -326,16 +390,18 @@ class Soldier(pygame.sprite.Sprite):
             self.health -= amount  # Decrease health by damage amount
             self.invincible = True  # Set invincible status
             self.invincible_timer = 180  # Start invincibility timer (3 seconds)
+            self.flicker_timer = 0  # Reset flicker timer
             if self.health <= 0:
-                self.health = 0
                 self.alive = False  # Mark player as dead if health is 0
 
     def check_invincibility(self):
         """ Manage invincibility status and timer. """
         if self.invincible:
             self.invincible_timer -= 1  # Decrease invincibility timer
+            self.flicker_timer += 1
             if self.invincible_timer <= 0:
                 self.invincible = False  # End invincibility
+                self.flicker_timer = 0
 
     def collect_health(self, amount):
         self.score += 50  # Earn 50 points for collecting health
@@ -437,8 +503,9 @@ class Soldier(pygame.sprite.Sprite):
             self.update_time = pygame.time.get_ticks()
             
     def draw(self):
-        screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
-
+           # Only draw the player if not invincible or if flicker_timer is even (for flickering effect)
+        if not self.invincible or (self.flicker_timer // self.flicker_interval) % 2 == 0:
+            screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
 class Jump:
     def __init__(self):
         self.vel_y = 0
@@ -640,6 +707,18 @@ class Enemy(pygame.sprite.Sprite):
          # Create a slim health bar for this enemy
         self.health_bar = HealthBar(self.rect.x, self.rect.y - 10, self.health, self.max_health, width=40, height=5)
 
+    def load_animations(self, scale):
+        """ Load animation frames for the character. """
+        animation_types = ['Idle', 'Run', 'Jump', 'Death']
+        for animation in animation_types:
+            temp_list = []
+            num_of_frames = len(os.listdir(f'asset/img/animation/{self.char_type}/{animation}'))        # Count frames in the directory
+            for i in range(num_of_frames):
+                img = pygame.image.load(f'asset/img/animation/{self.char_type}/{animation}/{i}.png').convert_alpha()       # Load image
+                img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))       # Scale image
+                temp_list.append(img)   # Append the image to the temporary list
+            self.animation_list.append(temp_list)       # Add animation frames to the main list
+
     def ai(self, player):
         """AI behavior for the enemy."""
         if self.alive and player.alive:
@@ -751,7 +830,8 @@ class Enemy(pygame.sprite.Sprite):
     def draw(self, screen):
         screen.blit(pygame.transform.flip(self.image, self.direction == -1, False), self.rect)
         if self.alive:
-            self.health_bar.draw(screen, self.health, self.rect.centerx - 20, self.rect.y - 10)  # Adjust x, y as needed 
+            self.health_bar.draw(screen, self.health, self.rect.centerx - 20, self.rect.y - 10)  # Adjust x, y as needed
+
 class FlyingEnemy(Enemy):
     def __init__(self, x, y, speed=3, health=5):
         super().__init__()
@@ -779,9 +859,9 @@ class FlyingEnemy(Enemy):
         animation_types = ['Fly', 'Attack', 'Hit']
         for animation in animation_types:
             temp_list = []
-            num_of_frames = len(os.listdir(f'assets/img/animation/{self.char_type}/{animation}'))
+            num_of_frames = len(os.listdir(f'asset/img/animation/{self.char_type}/{animation}'))
             for i in range(num_of_frames):
-                img = pygame.image.load(f'assets/img/enemies/{self.char_type}/{animation}/{i}.png').convert_alpha()
+                img = pygame.image.load(f'asset/img/enemies/{self.char_type}/{animation}/{i}.png').convert_alpha()
                 img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))
                 temp_list.append(img)
             self.animation_list.append(temp_list)
@@ -898,7 +978,7 @@ class FlyingEnemy(Enemy):
 
 class NormalEnemy(Enemy):
     def __init__(self, x, y, speed=2, health=4):
-        super().__init__('normal', x, y, speed, health)
+        super().__init__('enemy', x, y, speed, health)
 
     def move(self):
         if not self.idling:
@@ -912,15 +992,25 @@ class NormalEnemy(Enemy):
 class Scoring:
     def __init__(self):
         self.score = 0
-        self.font = pygame.font.Font(None, 36)  # Set font for score display
+        self.checkpoint_score = 0  # This will store the score at the start of each level
+        self.font = pygame.font.SysFont('Comic Sans MS', 36)  # Set font for score display
 
     def add_points(self, points):
         """Add points to the score."""
         self.score += points
 
+    def save_checkpoint_score(self):
+        """Save the current score as the checkpoint (when starting a new level)."""
+        self.checkpoint_score = self.score
+
+    def reset_to_checkpoint(self):
+        """Reset the score to the last saved checkpoint (when the player dies but restarts the current level)."""
+        self.score = self.checkpoint_score
+
     def reset_score(self):
         """Reset the score to zero."""
         self.score = 0
+        self.checkpoint_score = 0
 
     def display_score(self, screen):
         """Display the current score on the screen."""
@@ -958,7 +1048,7 @@ class MovingPlatform(pygame.sprite.Sprite):
         self.center_y = center_y if center_y is not None else y
         self.radius = radius  # Radius of the circular movement
 
-    def update(self,*args):
+    def update(self):
         if self.direction == 'horizontal':
             self.rect.x += self.speed
             if self.rect.x > 800 or self.rect.x < 0:  # Change direction on screen edges
@@ -1115,7 +1205,6 @@ class World():
 
     def process_data(self, data):
         self.level_length = len(data[0])
-        platform_group = pygame.sprite.Group()  # Create a group for platforms
 
         # Iterate through each value in level data file
         for y, row in enumerate(data):
@@ -1129,7 +1218,7 @@ class World():
 
                     if tile >= 0 and tile <= 8:
                         self.obstacle_list.append(tile_data)
-                    elif tile >= 9 and tile <= 10:
+                    elif tile >= 9 and tile <= 10 or tile in range(95,99):
                         water = Water(img, x * TILE_SIZE, y * TILE_SIZE)
                         water_group.add(water)
                     elif tile >= 11 and tile <= 14:
@@ -1139,36 +1228,36 @@ class World():
                         player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 20)
                         health_bar = HealthBar(10, 10, player.health, player.health)
                     elif tile == 16:  # Create enemies
-                        enemy = NormalEnemy('enemy', x * TILE_SIZE, y * TILE_SIZE, 1.65, 15)
+                        enemy = NormalEnemy(x * TILE_SIZE, y * TILE_SIZE, 1.65, 15)
                         enemy_group.add(enemy)
                     elif tile == 17:  # Create ammo box
                         item_box = ItemBox('Ammo', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    elif tile == 18:  # Create coin box
+                    elif tile in range(11, 15) or tile in range(40, 46):  # Create coin box
                         item_box = ItemBox('Coin', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
                     elif tile == 19:  # Create health box
                         item_box = ItemBox('Health', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    elif tile == 20:  # Create exit
+                    elif tile == 20 or 116:  # Create exit
                         exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
                         exit_group.add(exit)
-                    elif tile == 22:  # Horizontal moving platform
+                    elif tile == 78 or 115:  # Horizontal moving platform
                         platform = MovingPlatform(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE // 2, 'horizontal', 2)
                         platform_group.add(platform)
-                    elif tile == 23:  # Vertical moving platform
+                    elif tile == 113 or 112:  # Vertical moving platform
                         platform = MovingPlatform(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE // 2, 'vertical', 2)
                         platform_group.add(platform)
                     elif tile == 24:  # Circular moving platform
-                        platform = MovingPlatform(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE // 2, 'circular', 2, center_x=400, center_y=300, radius=100)
+                        platform = MovingPlatform(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE // 2, 'circular', 2, center_x=(x+1)* TILE_SIZE, center_y=(y+1)* TILE_SIZE, radius=2 * TILE_SIZE)
                         platform_group.add(platform)
                     elif tile == 30:  # Create wall
                         wall = Wall(img, x * TILE_SIZE, y * TILE_SIZE)
                         wall_group.add(wall)    
-                    elif tile == 50:  # Create boss
+                    elif tile == 105:  # Create boss
                         boss = Boss(x * TILE_SIZE, y * TILE_SIZE, 3, 50)  
                         boss_group.add(boss)
-                    elif tile == 28:  # Create flying enemy
+                    elif tile == 101:  # Create flying enemy
                         flying_enemy = FlyingEnemy(x * TILE_SIZE, y * TILE_SIZE, speed=1.5, health=10)  
                         enemy_group.add(flying_enemy)    
 
@@ -1266,6 +1355,8 @@ exit_group = pygame.sprite.Group()
 wall_group = pygame.sprite.Group()
 collectible_group = pygame.sprite.Group()
 boss_group = pygame.sprite.Group()
+projectile_group = pygame.sprite.Group()
+platform_group = pygame.sprite.Group()
 
 #create empty tile list
 world_data = []
@@ -1290,7 +1381,7 @@ platforms_group = pygame.sprite.Group(moving_platform_horizontal, moving_platfor
 class Boss(NormalEnemy):
     def __init__(self, x, y, speed=3, health=30):
         super().__init__(x, y, speed, health)
-        self.image = pygame.image.load('img/boss.png').convert_alpha()
+        self.image = pygame.image.load('asset/img/icons/boss.png').convert_alpha()
         self.image = pygame.transform.scale(self.image, (TILE_SIZE * 4, TILE_SIZE * 4))
         self.rect = self.image.get_rect(center=(x, y))
         self.speed = speed
@@ -1343,9 +1434,9 @@ class Boss(NormalEnemy):
         animation_types = ['Move']
         for animation in animation_types:
             temp_list = []
-            num_of_frames = len(os.listdir(f'assets/img/boss/{animation}'))  # Assuming your frames are stored in a folder
+            num_of_frames = len(os.listdir(f'asset/img/animation/boss/{animation}'))  # Assuming your frames are stored in a folder
             for i in range(num_of_frames):
-                img = pygame.image.load(f'assets/img/boss/{animation}/{i}.png').convert_alpha()
+                img = pygame.image.load(f'asset/img/animation/boss/{animation}/{i}.png').convert_alpha()
                 temp_list.append(img)
             self.animation_list.append(temp_list)
 
@@ -1603,7 +1694,7 @@ class Projectile(pygame.sprite.Sprite):
 boss, platform_group = load_boss_level()
                                  
 def update_boss_level(screen, player, boss, platform_group):
-    screen.blit(bg_level4, (0, 0))  # Draw the background starting from (0, 0)
+    draw_bg_4()  # Draw the background starting from (0, 0)
 
     # Draw the ground and walls
     wall_group.draw(screen)
@@ -1634,17 +1725,28 @@ def update_boss_level(screen, player, boss, platform_group):
 # Create a function to display the end screen after defeating the boss
 def display_end_screen(screen, score_manager):
     # Fill the screen with a black background
-    screen.fill(BLACK)
+    screen.blit(bg_end, (0, 0))  # Draw the congrats background
 
     # Create and display the "Congratulations" message
     font = pygame.font.SysFont('Futura', 60)
+    small_font = pygame.font.SysFont('Futura', 40)
     congrats_text = font.render('Congratulations!', True, (255, 255, 255))
-    screen.blit(congrats_text, (SCREEN_WIDTH // 2 - congrats_text.get_width() // 2, SCREEN_HEIGHT // 2 - 100))
+    congrats_x = SCREEN_WIDTH // 2 - congrats_text.get_width() // 2
+    congrats_y = SCREEN_HEIGHT // 2 - 150
+    screen.blit(congrats_text, (congrats_x, congrats_y))
 
     # Display the final score
     score_font = pygame.font.SysFont('Futura', 40)
     score_text = score_font.render(f'Final Score: {score_manager.score}', True, (255, 255, 255))
-    screen.blit(score_text, (SCREEN_WIDTH // 2 - score_text.get_width() // 2, SCREEN_HEIGHT // 2))
+    score_x = SCREEN_WIDTH // 2 - score_text.get_width() // 2
+    score_y = congrats_y + 80  # Positioned below the "Congratulations" text
+    screen.blit(score_text, (score_x, score_y))
+
+    # Display the "Thank You for Playing" message
+    thank_you_text = small_font.render('Thank you for playing!', True, (255, 255, 255))
+    thank_you_x = SCREEN_WIDTH // 2 - thank_you_text.get_width() // 2
+    thank_you_y = score_y + 60  # Positioned below the final score
+    screen.blit(thank_you_text, (thank_you_x, thank_you_y))
 
     # Create buttons for restarting or exiting the game
     restart_button = button.Button(SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 + 100, restart_img, 1)
@@ -1657,7 +1759,86 @@ def display_end_screen(screen, score_manager):
         return 'exit'
     
     return 'continue'
+
+class ScrollingText:
+    def __init__(self, text_list, font, text_color, x, start_y, scroll_speed, screen_width):
+        """
+        Initialize the ScrollingText object.
+
+        Parameters:
+        - text_list: List of strings representing the credits.
+        - font: Pygame font object.
+        - text_color: Color of the text.
+        - x: X position of the text.
+        - start_y: Starting Y position of the text.
+        - scroll_speed: Speed at which the text scrolls.
+        - screen_width: Screen width for wrapping the text.
+        """
+        self.text_list = text_list
+        self.font = font
+        self.text_color = text_color
+        self.x = x
+        self.start_y = start_y
+        self.scroll_speed = scroll_speed
+        self.screen_width = screen_width
+
+        # Prepare wrapped text list to handle line wrapping
+        self.wrapped_text = self.prepare_wrapped_text()
+        self.current_y = self.start_y  # Current Y position for scrolling
+
+    def prepare_wrapped_text(self):
+        """Wrap each line of text to fit within the screen width."""
+        wrapped_lines = []
+        for line in self.text_list:
+            wrapped_lines.extend(self.wrap_text(line))
+        return wrapped_lines
+
+    def wrap_text(self, text):
+        """Wrap a single line of text based on the screen width."""
+        words = text.split(' ')
+        wrapped_lines = []
+        current_line = []
+
+        for word in words:
+            current_line.append(word)
+            line_width = self.font.size(' '.join(current_line))[0]  # Calculate width
+            if line_width > self.screen_width - 20:  # Subtract some margin for padding
+                current_line.pop()  # Remove last word that exceeded the width
+                wrapped_lines.append(' '.join(current_line))
+                current_line = [word]  # Start a new line with the current word
+
+        # Add remaining words as the last line
+        wrapped_lines.append(' '.join(current_line))
+        return wrapped_lines
+
+    def update(self):
+        """Update the scrolling text's Y position."""
+        self.current_y -= self.scroll_speed
+
+        # Reset the text position when it scrolls off-screen
+        if self.current_y < -len(self.wrapped_text) * (self.font.get_height() + 5):
+            self.current_y = self.start_y
+
+    def draw(self, screen):
+        """Draw the scrolling text on the screen."""
+        y_offset = self.current_y
+        for line in self.wrapped_text:
+            text_surface = self.font.render(line, True, self.text_color)
+            screen.blit(text_surface, (self.x, y_offset))
+            y_offset += self.font.get_height() + 5  # Add space between lines
     
+# Example list of credits
+credits_text = [
+    "Game developed by Your Name",
+    "Artwork by Artist Name",
+    "Music by Composer Name",
+    "Special thanks to all the playtesters",
+]
+
+font = pygame.font.SysFont('Times New Roman', 30)
+scrolling_credits = ScrollingText(credits_text, font, WHITE, 10, (SCREEN_HEIGHT // 3) - 30, 1, SCREEN_WIDTH)
+
+
 running = True
 while running:
     mouse_pos = pygame.mouse.get_pos()  # Update mouse position
@@ -1706,16 +1887,29 @@ while running:
     # --- Game State Management ---
     if start_game == False:
         # Handle start menu
-        screen.fill(BG)
+        screen.blit(bg_start_menu, (0, 0))
         # Add buttons to the start menu
         if start_button.draw(screen):
             start_game = True
             start_intro = True
         if exit_button.draw(screen):
             running = False
+        # Add credits at the bottom left
+        # Wrap text if needed (if you want each line to fit within a certain width)
+        # Update and draw the scrolling credits
+        scrolling_credits.update()  # Update the Y position
+        scrolling_credits.draw(screen)  # Draw the text
+
     else:
-        # Update background and world map
-        draw_bg()
+        # --- LEVEL-SPECIFIC BACKGROUND DRAWING ---
+        if level == 3:
+            draw_bg_3()  # Call the background drawing function for level 3
+        if level == 2:
+            draw_bg_2()
+        else:
+            draw_bg()  # Default background for other levels
+        decoration_group.update()
+        decoration_group.draw(screen)
         world.draw()   
 
         platform_rects = [platform.rect for platform in platforms_group]
@@ -1725,7 +1919,7 @@ while running:
     
         # Update game elements
         platforms_group.update(player)  # Pass player to check for breaking or interactions
-    
+        platforms_group.draw(screen)
 
         # Collision Handling
         for bullet in bullet_group:
@@ -1761,15 +1955,14 @@ while running:
         # Shooting logic (if the player is shooting)
         if shoot and player.gun.can_shoot:
             player.shoot(mouse_pos)  # Shoot at the mouse position
-            # Display the score on the screen during the game loop
-            score_manager.display_score(screen)   
+            shot_fx.play()
+            # Display the score on the screen during the game loop  
 
     
         # Update and draw various groups (bullets, grenades, etc.)
         bullet_group.update()
         grenade_group.update()
         item_box_group.update()
-        decoration_group.update()
         water_group.update()
         exit_group.update()
         boss_group.update(player)
@@ -1779,7 +1972,6 @@ while running:
         bullet_group.draw(screen)
         grenade_group.draw(screen)
         item_box_group.draw(screen)
-        decoration_group.draw(screen)
         water_group.draw(screen)
         exit_group.draw(screen)
         collectible_group.draw(screen)
@@ -1836,10 +2028,22 @@ while running:
                     world_data = reset_level()  # Empty the current world and create a boss fight environment
                     world = World()  # Initialize an empty world for this level
                     player, health_bar = world.process_data(world_data)
+                    boss.update(player, platform_group)
         # --- Player Death Handling ---
         else:
             screen_scroll = 0
             if death_fade.fade():
+                if level == 4:  # Boss level case
+                    if restart_button.draw(screen):
+                        death_fade.fade_counter = 0
+                        start_intro = True
+                        boss, platform_group, wall_group = load_boss_level()  # Restart the boss fight
+                        player.reset_player()  # Reset player state (health, ammo, etc.)
+                        score_manager.reset_to_checkpoint()  # Reset score to the checkpoint for this level
+                    if exit_button.draw(screen):
+                        running = False
+            else:
+                # Normal game over logic (for non-boss levels)
                 if restart_button.draw(screen):
                     death_fade.fade_counter = 0
                     start_intro = True
@@ -1852,14 +2056,16 @@ while running:
                                 world_data[x][y] = int(tile)
                     world = World()
                     player, health_bar = world.process_data(world_data)
+                if exit_button.draw(screen):
+                    running = False
         
         # --- Boss Fight Logic ---
         if level == 4:
-            draw_bg()
+            draw_bg_4()
             world.draw()
 
             boss.update(player, platform_group)  # Update boss logic with player and platforms
-            boss.draw_health_bar(screen)
+            boss.draw_health_bar_on_top(screen)
             screen.blit(boss.image, boss.rect)
             boss.draw_shield(screen)  # Draw the shield in phase 2
 
@@ -1935,16 +2141,7 @@ while running:
 
         # Draw crosshair
         draw_crosshair(screen, player.rect.center, pygame.mouse.get_pos())
-
-
-        # When health is collected
-        score_manager.add_points(50)
-
-        # When an enemy is hit
-        score_manager.add_points(10)
-        platforms_group.update()  
-        platforms_group.draw(screen)
-
+     
     clock.tick(60)               
     pygame.display.flip()
     
