@@ -220,7 +220,7 @@ while run:
 	player.update()
 	player.draw()
 
-	enemy.update()
+	enemy.update(player)
 	enemy.draw()
 
 	#update and draw groups

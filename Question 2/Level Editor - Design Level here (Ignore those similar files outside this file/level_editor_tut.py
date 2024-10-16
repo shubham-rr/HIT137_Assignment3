@@ -1,3 +1,4 @@
+
 import pygame
 import button
 import csv
@@ -31,7 +32,6 @@ scroll_up = False
 scroll_down = False
 scroll = 0
 scroll_speed = 1
-FLOORS = 10  # Number of vertical levels (floors)
 
 # Pagination variables
 buttons_per_page = 15
@@ -101,14 +101,6 @@ def draw_bg():
 
 #draw grid
 def draw_grid():
-	if level in [3, 4]:
-        # Vertical lines
-		for c in range(MAX_COLS + 1):
-			pygame.draw.line(screen, WHITE, (c * TILE_SIZE, 0 - scroll), (c * TILE_SIZE, SCREEN_HEIGHT - scroll))
-        # Horizontal lines
-		for c in range(ROWS + 1):
-			pygame.draw.line(screen, WHITE, (0, c * TILE_SIZE - scroll), (SCREEN_WIDTH, c * TILE_SIZE - scroll))
-	else:
         # Vertical lines
 		for c in range(MAX_COLS + 1):
 			pygame.draw.line(screen, WHITE, (c * TILE_SIZE - scroll, 0), (c * TILE_SIZE - scroll, SCREEN_HEIGHT))
