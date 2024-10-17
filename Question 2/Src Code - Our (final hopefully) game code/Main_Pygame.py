@@ -26,7 +26,7 @@ SCROLL_THRESH = 200
 ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
-TILE_TYPES = 120
+TILE_TYPES = 50
 MAX_LEVELS = 4
 screen_scroll = 0
 bg_scroll = 0
@@ -155,7 +155,7 @@ def draw_bg():
 		screen.blit(pine2_img, ((x * width) - bg_scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
 
 def draw_bg_2():
-	screen.fill(164, 118, 157)
+	screen.fill((164, 118, 157))
 	width = sky_img.get_width()
 	for x in range(5):
 		screen.blit(bg3_layer4, ((x * width) - bg_scroll * 0.5, 0))
@@ -164,7 +164,7 @@ def draw_bg_2():
 		screen.blit(bg3_layer1, ((x * width) - bg_scroll * 0.8, SCREEN_HEIGHT - bg3_layer1.get_height()))
 
 def draw_bg_3():
-	screen.fill(70, 52, 94)
+	screen.fill((70, 52, 94))
 	width = sky_img.get_width()
 	for x in range(7):
             screen.blit(bg3_layer1, ((x * width) - bg_scroll * 0.5, 0))
@@ -196,7 +196,6 @@ def reset_level():
 
     # Reset the player's stats if necessary
     player.health = player.max_health
-    player.ammo = player.max_ammo
     score_manager.reset_score()
 
     # Create empty tile list
@@ -241,6 +240,7 @@ class Soldier(pygame.sprite.Sprite):
         self.jump_handler = Jump()
 
         # Gun variable regarding the player
+        self.ammo = 0
         self.gun = Gun()
 
         # Scoring system
@@ -260,15 +260,16 @@ class Soldier(pygame.sprite.Sprite):
         animation_types = ['Idle', 'Run', 'Jump', 'Death']
         for animation in animation_types:
             temp_list = []
-            num_of_frames = len(os.listdir(f'asset/img/animation/{self.char_type}/{animation}'))        # Count frames in the directory
+            num_of_frames = len(os.listdir(f'asset/img/animation/player/{animation}'))        # Count frames in the directory
             for i in range(num_of_frames):
-                img = pygame.image.load(f'asset/img/animation/{self.char_type}/{animation}/{i}.png').convert_alpha()       # Load image
+                img = pygame.image.load(f'asset/img/animation/player/{animation}/{i}.png').convert_alpha()       # Load image
                 img = pygame.transform.scale(img, (int(img.get_width() * scale), int(img.get_height() * scale)))       # Scale image
                 temp_list.append(img)   # Append the image to the temporary list
             self.animation_list.append(temp_list)       # Add animation frames to the main list
 
     def update(self):
         """ Update player state each frame. """
+        self.ammo = self.gun.ammo
         self.check_invincibility()  # Check if player is invincible
         self.update_animation()
         self.check_alive()
@@ -299,8 +300,7 @@ class Soldier(pygame.sprite.Sprite):
     def move(self, moving_left, moving_right, platform_rects):
         """ Handle player movement based on input. """
         global screen_scroll
-       
-        level_complete = False
+        
         dx = 0
         dy = 0
 
@@ -320,7 +320,7 @@ class Soldier(pygame.sprite.Sprite):
 
         # Apply gravity
         self.jump_handler.apply_gravity()
-        self.jump_handler.update(self.rect)
+        self.jump_handler.update(self.rect, world.obstacle_list, platform_rects)
 
         # Check platform collisions
         # Handle platform collisions (ignore if coming from below)
@@ -338,6 +338,10 @@ class Soldier(pygame.sprite.Sprite):
             for tile in world.obstacle_list:
                 if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
                     dx = 0  # Stop horizontal movement only
+                        #if the ai has hit a wall then make it turn around
+                    if self.char_type == 'enemy':
+                        self.direction *= -1
+                        self.move_counter = 0
 
     # Y-axis collision
         for tile in world.obstacle_list:
@@ -350,12 +354,32 @@ class Soldier(pygame.sprite.Sprite):
                     self.rect.top = tile[1].bottom
                     dy = 0
                     self.vel_y = 0
-                    self.in_air = False
+        
+        # Check for collision with water or exit
+        if pygame.sprite.spritecollide(self, water_group, False):
+            self.health = 0
+        level_complete = False
+        if pygame.sprite.spritecollide(self, exit_group, False):
+            level_complete = True
+
+        # Check if fallen off the map
+        if self.rect.bottom > SCREEN_HEIGHT:
+            self.health = 0
+        #check if going off the edges of the screen
+        if self.char_type == 'player':
+            if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
+                dx = 0
 
         # Update rectangle position
         self.rect.x += dx
         self.rect.y += dy
-
+          # Check for movement and set correct action
+        if self.in_air:
+            self.update_action(2)  # Action 2 = Jumping
+        elif moving_left or moving_right:
+            self.update_action(1)  # Action 1 = Running
+        else:
+            self.update_action(0)  # Action 0 = Idle
         # Handle screen scroll if player reaches screen edge
         if self.rect.right > SCREEN_WIDTH - SCROLL_THRESH or self.rect.left < SCROLL_THRESH:
             screen_scroll = -dx  # Update screen_scroll
@@ -421,74 +445,22 @@ class Soldier(pygame.sprite.Sprite):
 
 
     def update_animation(self):
-        global screen_scroll
-        dx = 0
-        dy = 0
-        ANIMATION_COOLDOWN = 100
+        # print(f'Current Action: {self.action}, Frame Index: {self.frame_index}')
+        ANIMATION_COOLDOWN = 100  # Time between frames
+        
         self.image = self.animation_list[self.action][self.frame_index]
+
+        # Check if enough time has passed to update the frame
         if pygame.time.get_ticks() - self.update_time > ANIMATION_COOLDOWN:
-            self.update_time = pygame.time.get_ticks()
-            self.frame_index += 1
+            self.update_time = pygame.time.get_ticks()  # Update time
+            self.frame_index += 1  # Move to the next frame
+            # print(f'Frame advanced to: {self.frame_index}')
+        # If animation has finished, reset the frame index
         if self.frame_index >= len(self.animation_list[self.action]):
-            if self.action == 3:
+            if self.action == 3:  # Death animation stays on last frame
                 self.frame_index = len(self.animation_list[self.action]) - 1
-            else:
+            else:  # Reset to the start for other animations
                 self.frame_index = 0
-
-        #check for collision
-        for tile in world.obstacle_list:
-            #check collision in the x direction
-            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
-                dx = 0
-                dy = 0
-                #if the ai has hit a wall then make it turn around
-                if self.char_type == 'enemy':
-                    self.direction *= -1
-                    self.move_counter = 0
-            #check for collision in the y direction
-            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                #check if below the ground, i.e. jumping
-                if self.vel_y < 0:
-                    self.vel_y = 0
-                    dy = tile[1].bottom - self.rect.top
-                #check if above the ground, i.e. falling
-                elif self.vel_y >= 0:
-                    self.vel_y = 0
-                    self.in_air = False
-                    dy = tile[1].top - self.rect.bottom
-
-
-        #check for collision with water
-        if pygame.sprite.spritecollide(self, water_group, False):
-            self.health = 0
-
-        #check for collision with exit
-        level_complete = False
-        if pygame.sprite.spritecollide(self, exit_group, False):
-            level_complete = True
-
-        #check if fallen off the map
-        if self.rect.bottom > SCREEN_HEIGHT:
-            self.health = 0
-
-
-        #check if going off the edges of the screen
-        if self.char_type == 'player':
-            if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
-                dx = 0
-
-        #update rectangle position
-        self.rect.x += dx
-        self.rect.y += dy
-
-        #update scroll based on player position
-        if self.char_type == 'player':
-            if (self.rect.right > SCREEN_WIDTH - SCROLL_THRESH and bg_scroll < (world.level_length * TILE_SIZE) - SCREEN_WIDTH)\
-                or (self.rect.left < SCROLL_THRESH and bg_scroll > abs(dx)):
-                self.rect.x -= dx
-                screen_scroll = -dx
-
-        return screen_scroll, level_complete
 
     def update_action(self, new_action):
 		#check if the new action is different to the previous one
@@ -548,6 +520,7 @@ class Jump:
                 self.vel_y = 0
                 self.in_air = False
                 self.coyote_time = self.coyote_time_limit
+        
         # Handle collisions with world obstacles
         for tile in world_obstacles:
             if rect.colliderect(tile[1]):  # Vertical collisions
@@ -559,7 +532,19 @@ class Jump:
                 elif self.vel_y < 0:  # Jumping upward
                     rect.top = tile[1].bottom
                     self.vel_y = 0
+        # Your existing logic to handle jumping and gravity, now with world_obstacles and platform_rects
+        self.apply_gravity() 
 
+        # Handle platform collisions when jumping: Only activate collision if player is falling, not rising
+        for platform in platform_rects:
+            if rect.colliderect(platform) and self.vel_y > 0:  # Only land when falling
+                rect.bottom = platform.top
+                self.vel_y = 0
+                self.in_air = False
+                self.coyote_time = self.coyote_time_limit
+            elif rect.colliderect(platform) and self.vel_y < 0:  # Allow passing through platform from below
+                rect.y += self.vel_y  # Keep moving upward
+                
 class Bullet(pygame.sprite.Sprite):
     "Projectile from player"
     def __init__(self, start_pos, angle, speed=10, range=790):
@@ -590,7 +575,7 @@ class Bullet(pygame.sprite.Sprite):
 class Gun:
     def __init__(self):
         self.angle = 0
-        self.ammo = 25 
+        self.ammo = 20
         self.max_ammo = 25
         self.reload_time = 3500  # 3.5 seconds reload time
         self.last_shot_time = 0
@@ -1059,7 +1044,7 @@ score_manager = Scoring()
 class MovingPlatform(pygame.sprite.Sprite):
     def __init__(self, x, y, width, height, direction, speed, center_x=None, center_y=None, radius=100):
         super().__init__()
-        self.image = pygame.transform.scale(img_list[78], (width, height))
+        self.image = pygame.transform.scale(img_list[39], (width, height))
         self.rect = pygame.Rect(x, y, width, height)
         self.direction = direction
         self.speed = speed
@@ -1186,6 +1171,10 @@ class Collectible(pygame.sprite.Sprite):
     def update(self, player):
         """ Update collectible status and check for collision with player. """
         # Move collectible with screen scroll if applicable
+        global screen_scroll
+        # Ensure screen_scroll is not a tuple
+        if isinstance(screen_scroll, tuple):
+            screen_scroll = screen_scroll[0]
         self.rect.x += screen_scroll
 
         # Check if the player collides with the collectible
@@ -1217,15 +1206,24 @@ class Wall(pygame.sprite.Sprite):
         self.rect.y = y
 
     def update(self):
+        global screen_scroll
+        # Ensure screen_scroll is not a tuple
+        if isinstance(screen_scroll, tuple):
+            screen_scroll = screen_scroll[0]
         self.rect.x += screen_scroll  # Make sure walls move with the screen scroll
 
 class World():
     def __init__(self):
         self.obstacle_list = []
-
+       
+    
     def process_data(self, data):
         self.level_length = len(data[0])
-
+        player = None  # Initialize player as None at the start
+        health_bar = None
+        platform_group.empty()  # Clear the platform group at the beginning
+        wall_group.empty()
+        boss_group.empty()
         # Iterate through each value in level data file
         for y, row in enumerate(data):
             for x, tile in enumerate(row):
@@ -1236,16 +1234,16 @@ class World():
                     img_rect.y = y * TILE_SIZE
                     tile_data = (img, img_rect)
 
-                    if tile >= 0 and tile <= 8:
+                    if tile >= 0 and tile <= 8 and tile in range(29,32):
                         self.obstacle_list.append(tile_data)
-                    elif tile >= 9 and tile <= 10 or tile in range(95,99):
+                    elif tile in range(9,11) or tile in range(47,51):
                         water = Water(img, x * TILE_SIZE, y * TILE_SIZE)
                         water_group.add(water)
-                    elif tile >= 11 and tile <= 14:
+                    elif tile >= 11 and tile <= 14 or tile in range(24,29) or tile == 21:
                         decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
                         decoration_group.add(decoration)
                     elif tile == 15:  # Create player
-                        player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 20)
+                        player = Soldier('player', x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 25)
                         health_bar = HealthBar(10, 10, player.health, player.health)
                     elif tile == 16:  # Create enemies
                         enemy = NormalEnemy(x * TILE_SIZE, y * TILE_SIZE, 1.65, 15)
@@ -1253,7 +1251,7 @@ class World():
                     elif tile == 17:  # Create ammo box
                         item_box = ItemBox('Ammo', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    elif tile in range(11, 15) or tile in range(40, 46):  # Create coin box
+                    elif tile in [18, 36, 43]:  # Create coin box
                         item_box = ItemBox('Coin', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
                     elif tile == 19:  # Create health box
@@ -1262,25 +1260,29 @@ class World():
                     elif tile == 20 or 116:  # Create exit
                         exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
                         exit_group.add(exit)
-                    elif tile == 78 or 115:  # Horizontal moving platform
+                    elif tile in [39, 44]:  # Horizontal moving platform
                         platform = MovingPlatform(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE // 2, 'horizontal', 2)
                         platform_group.add(platform)
-                    elif tile == 113 or 112:  # Vertical moving platform
+                    elif tile in [42, 32]:  # Vertical moving platform
                         platform = MovingPlatform(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE // 2, 'vertical', 2)
                         platform_group.add(platform)
-                    elif tile == 24:  # Circular moving platform
+                    elif tile in [33, 35]:  # Circular moving platform
                         platform = MovingPlatform(x * TILE_SIZE, y * TILE_SIZE, TILE_SIZE * 2, TILE_SIZE // 2, 'circular', 2, center_x=(x+1)* TILE_SIZE, center_y=(y+1)* TILE_SIZE, radius=2 * TILE_SIZE)
                         platform_group.add(platform)
-                    elif tile == 30:  # Create wall
+                    elif tile == 49:  # Create wall
                         wall = Wall(img, x * TILE_SIZE, y * TILE_SIZE)
                         wall_group.add(wall)    
-                    elif tile == 105 and level == 4 :  # Create boss
+                    elif tile == 22 and level == 4 :  # Create boss
                         boss = Boss(x * TILE_SIZE, y * TILE_SIZE, 3, 50)  
                         boss_group.add(boss)
-                    elif tile == 101:  # Create flying enemy
+                    elif tile == 23:  # Create flying enemy
                         flying_enemy = FlyingEnemy(x * TILE_SIZE, y * TILE_SIZE, speed=1.5, health=10)  
                         enemy_group.add(flying_enemy)    
 
+        if player is None:
+            print("Warning: Player not found in the level data. Creating default player at (0,0).")
+            player = Soldier('player', 0, 0, 1.65, 5, 25)
+            health_bar = HealthBar(10, 10, player.health, player.health)
         return player, health_bar, platform_group, wall_group, boss_group
 
 
@@ -1289,39 +1291,54 @@ class World():
         for tile in self.obstacle_list:
             tile_rect = tile[1].copy()  # Copy the tile's rect to avoid modifying the original rect
             tile_rect.x += screen_scroll  # Apply screen scroll only for drawing purposes
-            screen.blit(tile[0], tile_rect)  # Draw the tile at the updated position
-
-
+           # Only draw tiles if they're on-screen
+            if tile_rect.right > 0 and tile_rect.left < SCREEN_WIDTH:
+                screen.blit(tile[0], tile_rect)
+               
 class Decoration(pygame.sprite.Sprite):
-	def __init__(self, img, x, y):
-		pygame.sprite.Sprite.__init__(self)
-		self.image = img
-		self.rect = self.image.get_rect()
-		self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+    def __init__(self, img, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = img
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
-	def update(self):
-		self.rect.x += screen_scroll
+    def update(self):
+        global screen_scroll
+        # Ensure screen_scroll is not a tuple
+        if isinstance(screen_scroll, tuple):
+            screen_scroll = screen_scroll[0]
+        self.rect.x += screen_scroll
 
 
 class Water(pygame.sprite.Sprite):
-	def __init__(self, img, x, y):
-		pygame.sprite.Sprite.__init__(self)
-		self.image = img
-		self.rect = self.image.get_rect()
-		self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+    def __init__(self, img, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = img
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
-	def update(self):
-		self.rect.x += screen_scroll
-        
+    def update(self):
+        global screen_scroll
+        # Ensure screen_scroll is not a tuple
+        if isinstance(screen_scroll, tuple):
+            screen_scroll = screen_scroll[0]
+        self.rect.x += screen_scroll
+
 class Exit(pygame.sprite.Sprite):
-	def __init__(self, img, x, y):
-		pygame.sprite.Sprite.__init__(self)
-		self.image = img
-		self.rect = self.image.get_rect()
-		self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+    def __init__(self, img, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = img
+        self.rect = self.image.get_rect()
+        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
-	def update(self):
-		self.rect.x += screen_scroll
+    def update(self):
+        # Scroll
+        global screen_scroll
+        # Ensure screen_scroll is not a tuple
+        if isinstance(screen_scroll, tuple):
+            screen_scroll = screen_scroll[0]
+        self.rect.x += screen_scroll
+		
         
 
 class ItemBox(pygame.sprite.Sprite):
@@ -1335,11 +1352,10 @@ class ItemBox(pygame.sprite.Sprite):
     def update(self):
         # Scroll
         global screen_scroll
-        global screen_scroll
         # Ensure screen_scroll is not a tuple
         if isinstance(screen_scroll, tuple):
             screen_scroll = screen_scroll[0]
-            self.rect.x += screen_scroll
+        self.rect.x += screen_scroll
         
         # Check if the player has picked up the box
         if pygame.sprite.collide_rect(self, player):
@@ -1361,7 +1377,7 @@ class ItemBox(pygame.sprite.Sprite):
 
 
 #create screen fades
-intro_fade = ScreenFade(1, BLACK, 4)
+intro_fade = ScreenFade(1, BLACK, 10)
 death_fade = ScreenFade(2, PINK, 4)
 
 #create buttons
@@ -1397,10 +1413,7 @@ with open(f'level{level}_data.csv', newline='') as csvfile:
 			world_data[x][y] = int(tile)
 world = World()
 player, health_bar, platform_group, wall_group, boss_group = world.process_data(world_data)
-
-moving_platform_horizontal = MovingPlatform(x=100, y=300, width=100, height=20, direction='horizontal', speed=2)
-moving_platform_vertical = MovingPlatform(x=300, y=200, width=100, height=20, direction='vertical', speed=2)
-moving_platform_circular = MovingPlatform(x=400, y=300, width=20, height=20, direction='circular', speed=2)
+print(f"Player initialized with ammo: {player.gun.ammo}")
 platforms_group = pygame.sprite.Group()
 
 
@@ -1481,13 +1494,13 @@ class Boss(NormalEnemy):
         if self.frame_index >= len(self.animation_list[self.action]):
             self.frame_index = 0
 
-    def update(self, player, platform):
+    def update(self, player, platform_group):
         """Handles boss behavior, including phase transitions."""
         if self.health <= self.max_health // 2 and self.phase == 1:
-            self.enter_phase_two(platform)
+            self.enter_phase_two(platform_group)
 
         if self.phase == 1:
-            self.charge_at_player(player)
+            self.charge_at_player(player,platform_group)
         elif self.phase == 2:
             self.switch_platform_if_needed(platform_group)
             self.stand_on_platform()
@@ -1542,7 +1555,7 @@ class Boss(NormalEnemy):
         # Determine direction based on the player's position
         # Boss will only charge if the player is on the same platform or ground
         player_on_ground = player.rect.bottom >= SCREEN_HEIGHT - TILE_SIZE
-
+        player_on_same_platform = False
         if player_on_same_platform or player_on_ground:
             # Determine direction based on the player's position
             if player.rect.x < self.rect.x:
@@ -1550,7 +1563,7 @@ class Boss(NormalEnemy):
             else:
                 self.direction = 1  # Move right
         
-        player_on_same_platform = False
+        
         for platform in platform_group:
             if platform.rect.colliderect(player.rect) and platform.rect.colliderect(self.rect):
                 player_on_same_platform = True
@@ -1866,6 +1879,8 @@ scrolling_credits = ScrollingText(credits_text, font, WHITE, 10, (SCREEN_HEIGHT 
 
 running = True
 while running:
+    fps = clock.get_fps()
+    print(f"Current FPS: {fps:.2f}")
     mouse_pos = pygame.mouse.get_pos()  # Update mouse position
     "Event"
     for event in pygame.event.get():
@@ -2044,13 +2059,13 @@ while running:
                             for y, tile in enumerate(row):
                                 world_data[x][y] = int(tile)
                     world = World()
-                    player, health_bar = world.process_data(world_data)
-                
+                    player, health_bar, platform_group, wall_group, boss_group = world.process_data(world_data)
+            
                 elif level == 4:  # Load Boss Level
                     boss, platform_group = load_boss_level()
                     world_data = reset_level()  # Empty the current world and create a boss fight environment
                     world = World()  # Initialize an empty world for this level
-                    player, health_bar = world.process_data(world_data)
+                    player, health_bar, platform_group, wall_group, boss_group = world.process_data(world_data)
                     boss.update(player, platform_group)
         
         # --- Player Death Handling ---
@@ -2079,7 +2094,7 @@ while running:
                             for y, tile in enumerate(row):
                                 world_data[x][y] = int(tile)
                     world = World()
-                    player, health_bar = world.process_data(world_data)
+                    player, health_bar, platform_group, wall_group, boss_group = world.process_data(world_data)
                 if exit_button.draw(screen):
                     running = False
         
@@ -2163,8 +2178,8 @@ while running:
         
         # Draw crosshair
         draw_crosshair(screen, player.rect.center, pygame.mouse.get_pos())
-     
-    clock.tick(60)               
+    
+    clock.tick(FPS)               
     pygame.display.flip()
     
 pygame.quit()
