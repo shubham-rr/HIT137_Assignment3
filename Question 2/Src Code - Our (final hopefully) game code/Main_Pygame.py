@@ -33,7 +33,7 @@ bg_scroll = 0
 level = 1
 start_game = False
 start_intro = False
-AUTO_RELOAD_TIME = 120  # Time in frames to auto-reload (2 seconds)
+score = 0  # Initialize the score globally
 
 #define player action variables
 moving_left = False
@@ -217,7 +217,6 @@ class Soldier(pygame.sprite.Sprite):
         self.last_hit_time = 0
         self.char_type = char_type      # Type of character (player/enemy)
         self.speed = speed      # Movement speed of the player
-        self.shoot_cooldown = 0
         self.health = 10
         self.max_health = self.health
         self.invincible = False  # Invincibility status
@@ -242,27 +241,11 @@ class Soldier(pygame.sprite.Sprite):
         self.jump_handler = Jump()
 
         # Gun variable regarding the player
-        self.normal_gun_cooldown = 0  # Cooldown timer for normal gun
-        shooting = False  # To keep track if the player is holding down the shoot button
         self.gun = Gun()
 
-        # Ammo and Reload/ Auto Reload Time
-        self.normal_ammo = ammo  # Ammo for the normal gun
-        self.reload_time_normal = 180  # Reload time for normal gun (3 seconds)
-        self.last_shot_time = 0  # Track time of last shot
-        self.auto_reload_timer = 0  # Timer for auto-reloading
-        
-        # Cooldown and Shooting Interval
-        self.normal_gun_shoot_interval = 30  # Interval for normal gun (0.5 seconds)
-        self.reload_cooldown_normal = 0  # Cooldown for normal gun reloading
-        
         # Scoring system
         self.points = 0  # Player's score
         self.font = pygame.font.SysFont('Futura', 36)  # Set font for score display
-
-        # New attributes for auto-reloading
-        self.last_shot_time = 0  # Track time of last shot
-        self.auto_reload_timer = 0  # Timer for auto-reloading
         
         # Load images for animations
         self.load_animations(scale)
@@ -286,34 +269,26 @@ class Soldier(pygame.sprite.Sprite):
 
     def update(self):
         """ Update player state each frame. """
-        self.reload()  # Reload ammunition
         self.check_invincibility()  # Check if player is invincible
         self.update_animation()
         self.check_alive()
 
-        # Update cooldowns
-        if self.normal_gun_cooldown > 0:
-            self.normal_gun_cooldown -= 1
+        # Update gun state (handle reloading, cooldown, etc.)
+        self.gun.update(pygame.mouse.get_pos(), self.rect.center)
 
-        # Handle aiming and shooting "
-        mouse_pos = pygame.mouse.get_pos()  # Get mouse position
-        if pygame.mouse.get_pressed()[0]:  # Check if left mouse button is pressed
-            self.shoot(mouse_pos)  # Shoot towards mouse position    
-            self.last_shot_time = pygame.time.get_ticks()  # Update last shot time
-            self.auto_reload_timer = 0  # Reset auto reload timer when shooting
-        else:
-            # Increment the auto-reload timer if not shooting
-            self.auto_reload_timer += 1
-            
-            # Check if 2 seconds have passed (assuming 60 FPS, so 120 frames)
-            if self.auto_reload_timer >= AUTO_RELOAD_TIME:
-                self.reload()  # Auto-reload if no shooting for 2 seconds
+        # Handle manual reload by pressing 'R'
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_r] and not self.gun.is_reloading:
+            self.gun.start_reload()
 
-        # Update guns
-        self.gun.reload()
+        # Handle aiming and shooting
+        mouse_pos = pygame.mouse.get_pos()
+        if pygame.mouse.get_pressed()[0]:
+            self.gun.shoot(self.rect.center, mouse_pos)
 
-    def aim(self, mouse_pos):
-        self.gun.update(mouse_pos, self.position)  # Update gun aiming
+        # Update cooldown for the gun
+        if self.gun.cooldown_time > 0:
+            self.gun.cooldown_time -= 1  # Decrease cooldown time
 
     def calculate_angle(self, target):
         """ Calculate the angle between the player and the target. """
@@ -360,11 +335,22 @@ class Soldier(pygame.sprite.Sprite):
 
        # Check for platform collisions, etc.
         for tile in world.obstacle_list:
-            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
-                dx = 0
+            for tile in world.obstacle_list:
+                if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                    dx = 0  # Stop horizontal movement only
+
+    # Y-axis collision
+        for tile in world.obstacle_list:
             if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-                dy = 0
-                self.in_air = False
+                if dy > 0:  # Falling down
+                    self.rect.bottom = tile[1].top
+                    dy = 0
+                    self.in_air = False  # Player has landed
+                elif dy < 0:  # Jumping up
+                    self.rect.top = tile[1].bottom
+                    dy = 0
+                    self.vel_y = 0
+                    self.in_air = False
 
         # Update rectangle position
         self.rect.x += dx
@@ -378,13 +364,13 @@ class Soldier(pygame.sprite.Sprite):
     
     def shoot(self, target_pos):
         """ Handle shooting logic. """
-        if self.gun.ammo > 0:
-            if self.normal_gun_cooldown <= 0 and self.gun.ammo > 0:
-                self.create_bullet(target_pos)
-                self.gun.shoot(self.rect.center,target_pos) 
-                self.normal_gun_cooldown = self.normal_gun_shoot_interval  # Reset cooldown
-                shot_fx.play()
-        
+        self.gun.shoot(self.rect.center, target_pos)
+
+    def start_reload(self):
+        """ Initiate reloading process. """
+        self.is_reloading = True
+        self.gun.start_reload()
+
     def create_bullet(self, target_pos):
         """ Create a bullet based on the target position. """
         angle = self.calculate_angle(target_pos)  # Calculate the angle to shoot
@@ -393,11 +379,11 @@ class Soldier(pygame.sprite.Sprite):
 
     def reload(self):
         """ Handle reloading logic for both guns. """
-        if self.normal_ammo < 10 and self.auto_reload_timer >= AUTO_RELOAD_TIME:  # Only reload if not shooting
-            self.normal_ammo += 1  # Reload normal ammo automatically
-            if self.normal_ammo > 10:  # Cap ammo at max (10)
-                self.normal_ammo = 10
-                reload_fx.play()
+        if self.is_reloading and pygame.time.get_ticks() - self.gun.last_shot_time >= self.reload_time:
+            self.ammo = self.gun.max_ammo
+            self.is_reloading = False
+            self.can_shoot = True 
+            reload_fx.play()
 
     def take_damage(self, amount):
         """ Reduce health when taking damage. """
@@ -426,11 +412,6 @@ class Soldier(pygame.sprite.Sprite):
     def add_score(self, points):
         self.score += points  # Add points to score
 
-    def display_score(self, screen):
-        score_str = f"{self.score:05d}"
-        score_surface = self.font.render(score_str, True, WHITE)
-        screen.blit(score_surface, (10, 10))  # Position score on the top-left
-        
     def check_alive(self):
         if self.health <= 0:
             self.health = 0
@@ -521,6 +502,7 @@ class Soldier(pygame.sprite.Sprite):
            # Only draw the player if not invincible or if flicker_timer is even (for flickering effect)
         if not self.invincible or (self.flicker_timer // self.flicker_interval) % 2 == 0:
             screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
+
 class Jump:
     def __init__(self):
         self.vel_y = 0
@@ -542,8 +524,9 @@ class Jump:
         if self.vel_y > 10:  # Terminal velocity
             self.vel_y = 10
 
-    def update(self, rect):
+    def update(self, rect, world_obstacles, platform_rects):
         rect.y += self.vel_y
+        self.check_collision(rect, world_obstacles, platform_rects)
         if rect.bottom >= SCREEN_HEIGHT:
             rect.bottom = SCREEN_HEIGHT
             self.in_air = False
@@ -557,24 +540,29 @@ class Jump:
             self.jump()
             self.jump_buffer = False  # Reset buffer after jumping
 
-    def check_collision(self, rect, platform_rects):
+    def check_collision(self, rect, world_obstacles, platform_rects):
         # Check if the player is colliding with a platform
         for platform in platform_rects:
-            if rect.colliderect(platform):
-                if self.vel_y >= 0:  # Only consider landing if falling
-                    rect.bottom = platform.top  # Land on platform
-                    self.in_air = False
+            if rect.colliderect(platform) and self.vel_y >= 0:  # Only land when falling
+                rect.bottom = platform.top
+                self.vel_y = 0
+                self.in_air = False
+                self.coyote_time = self.coyote_time_limit
+        # Handle collisions with world obstacles
+        for tile in world_obstacles:
+            if rect.colliderect(tile[1]):  # Vertical collisions
+                if self.vel_y > 0:  # Falling
+                    rect.bottom = tile[1].top
                     self.vel_y = 0
-                    self.coyote_time = self.coyote_time_limit  # Reset coyote time
-                else:
-                    # If moving up or horizontally, ignore collision
-                    rect.y -= self.vel_y
-                return
-
+                    self.in_air = False
+                    self.coyote_time = self.coyote_time_limit
+                elif self.vel_y < 0:  # Jumping upward
+                    rect.top = tile[1].bottom
+                    self.vel_y = 0
 
 class Bullet(pygame.sprite.Sprite):
-    "Projectile"
-    def __init__(self, start_pos, angle, speed=10, range=800):
+    "Projectile from player"
+    def __init__(self, start_pos, angle, speed=10, range=790):
         super().__init__()
         self.image = bullet_img
         self.rect = self.image.get_rect(center=start_pos)
@@ -583,7 +571,7 @@ class Bullet(pygame.sprite.Sprite):
         self.distance_travelled = 0
         self.angle = angle  # Angle for movement
         self.damage = 2.5
-
+        self.spawn_time = pygame.time.get_ticks()
     def update(self):
         # Move the bullet in the direction of the angle
         self.rect.x += self.speed * math.cos(self.angle)
@@ -602,85 +590,102 @@ class Bullet(pygame.sprite.Sprite):
 class Gun:
     def __init__(self):
         self.angle = 0
-        self.ammo = 10  # For normal gun
-        self.max_ammo = 10
-        self.reload_time = 3000  # 3 seconds reload time
+        self.ammo = 25 
+        self.max_ammo = 25
+        self.reload_time = 3500  # 3.5 seconds reload time
         self.last_shot_time = 0
         self.is_reloading = False
-        self.auto_reload_time = 2000  # Auto reload after 2 seconds of inactivity
         self.can_shoot = True
-        self.cooldown_time = 500
-
+        self.cooldown_time = 700
+        self.last_bullet_time = 0
+       
         # No-reload attributes
         self.no_reload_active = False
         self.no_reload_timer = 0  # Countdown for no-reload period
  
-    # # Load SFX placeholders
-        # self.shoot_sfx = mixer.Sound('assets/sounds/shoot.wav')  # Placeholder for shooting SFX
-        # self.reload_sfx = mixer.Sound('assets/sounds/reload.wav')  # Placeholder for reload SFX
-
     def update(self, mouse_pos, player_pos):
+        # Update the gun's angle based on the mouse position
         rel_x, rel_y = mouse_pos[0] - player_pos[0], mouse_pos[1] - player_pos[1]
         self.angle = (180 / math.pi) * -math.atan2(rel_y, rel_x)
 
-        # Auto reload logic
-        if not self.is_reloading and self.ammo < self.max_ammo and pygame.time.get_ticks() - self.last_shot_time > self.auto_reload_time:
-            self.ammo += 1
-            if self.ammo >= 10:
-                self.ammo = 10
-           
-        # Handle the no-reload timer
+
+        # Handle the no-reload powerup timer (10 seconds duration)
         if self.no_reload_active:
-            if pygame.time.get_ticks() - self.no_reload_timer >= 10000:  # 10 seconds
+            if pygame.time.get_ticks() - self.no_reload_timer >= 10000:  # 10 seconds powerup duration
                 self.no_reload_active = False
 
-          # Handle reloading if out of ammo
-        if self.is_reloading and pygame.time.get_ticks() - self.last_shot_time >= self.reload_time:
-            self.ammo = self.max_ammo  # Refill ammo
-            self.is_reloading = False
 
+        # Handle manual reloading (only if no powerup is active)
+        if self.is_reloading and pygame.time.get_ticks() - self.last_shot_time >= self.reload_time:
+            self.finish_reload()
+       
         # Handle cooldown between shots
-        if not self.is_reloading and not self.can_shoot and pygame.time.get_ticks() - self.last_shot_time > self.cooldown_time:
-            self.can_shoot = True
+        if not self.is_reloading and not self.can_shoot:
+            if pygame.time.get_ticks() - self.last_shot_time > self.cooldown_time:
+                self.can_shoot = True
+        
+        # If the powerup is active, bypass reload and cooldown
+        if self.no_reload_active:
+            self.can_shoot = True  # Always allow shooting while powerup is active
+
 
     def shoot(self, player_pos, mouse_pos):
         # Shooting logic: if the gun has ammo and isn't reloading or cooling down
-         if self.can_shoot and not self.is_reloading and self.ammo > 0:
-            self.ammo -= 1
-            self.last_shot_time = pygame.time.get_ticks()
-            self.can_shoot = False  # Prevent shooting until cooldown is over
+        if not self.is_reloading and self.ammo > 0:
+            if pygame.time.get_ticks() - self.last_shot_time >= self.cooldown_time:  # Respect the cooldown
+                self.ammo -= 1
+                self.last_shot_time = pygame.time.get_ticks()  # Update last shot time
+                self.can_shoot = False  # Prevent shooting until cooldown is over
+                self.last_bullet_time = pygame.time.get_ticks()  # Update the time after shooting.
+        
+                # create bullet
+                offset_distance = 20  # Gun's offset distance from the player
+                bullet_start_x = player_pos[0] + offset_distance * math.cos(self.angle * math.pi / 180)
+                bullet_start_y = player_pos[1] + offset_distance * math.sin(self.angle * math.pi / 180)
+                bullet_start_pos = (bullet_start_x, bullet_start_y)
 
-            # Calculate direction and offset bullet start from gun's position (player's position + offset)
-            offset_distance = 20  # Gun's offset distance from the player
-            bullet_start_x = player_pos[0] + offset_distance * math.cos(self.angle * math.pi / 180)
-            bullet_start_y = player_pos[1] + offset_distance * math.sin(self.angle * math.pi / 180)
-            bullet_start_pos = (bullet_start_x, bullet_start_y)
-
-            # Calculate angle to shoot towards the mouse
-            angle = math.atan2(mouse_pos[1] - bullet_start_y, mouse_pos[0] - bullet_start_x)
-
-            # Create the bullet and add to the bullet group
-            bullet = Bullet(bullet_start_pos, angle)
-            bullet_group.add(bullet)
-
-            # Start reload if ammo is 0
-            if self.ammo == 0:
-                self.is_reloading = True
-                self.last_shot_time = pygame.time.get_ticks()  
-                reload_fx.play()
-
+                angle = math.atan2(mouse_pos[1] - bullet_start_y, mouse_pos[0] - bullet_start_x)
+                bullet = Bullet(bullet_start_pos, angle)
+                bullet_group.add(bullet)
+                
+                # Start reload if ammo is 0
+                if self.ammo == 0:
+                    self.start_reload()
+        
+            
     def reload(self):
         """Reload the gun after a specified time."""
-        if self.is_reloading:
-            if pygame.time.get_ticks() - self.last_shot_time >= self.reload_time:
-                self.ammo = self.max_ammo
-                self.is_reloading = False
-                reload_fx.play()
+        if not self.is_reloading and self.ammo <= 0:
+            self.start_reload()
+
+    def start_reload(self):
+        """Initiate the reloading process."""
+        self.is_reloading = True
+        self.last_shot_time = pygame.time.get_ticks()  # Mark the time reload started
+        reload_fx.play()  # Play the reload sound effect
+        self.can_shoot = False
+   
+    def finish_reload(self):
+        """Complete the reload and restore ammo."""
+        self.ammo = self.max_ammo
+        self.is_reloading = False
+        self.can_shoot = True  # Allow shooting again after reload completes
 
     def activate_no_reload(self):
         """Activate no-reload mode for 10 seconds."""
         self.no_reload_active = True
         self.no_reload_timer = pygame.time.get_ticks()  # Start the 10-second countdown
+
+    def display_ammo(self, screen, x, y, health_bar):
+        """Display current and max ammo under the health bar."""
+        font = pygame.font.SysFont('Arial', 20)
+        ammo_text = font.render(f'Ammo: {self.ammo}/{self.max_ammo}', True, WHITE)
+    
+        # Position ammo display directly under the health bar
+        screen.blit(ammo_text, (x, y + health_bar.height + 10))
+        
+        # Return the height of the ammo text for positioning the score below it
+        return ammo_text.get_height()
 
     def draw(self, screen, player_pos, mouse_pos):
         # Calculate direction vector to the mouse
@@ -827,11 +832,12 @@ class Enemy(pygame.sprite.Sprite):
         self.health -= amount
         if self.previous_health > self.health: 
             score_manager.add_points(10 * (self.previous_health - self.health))
-            boss_hit_fx()
+            boss_hit_fx.play()
         global score  # Access the global score variable
         score += 10  # Earn 10 points for each health point deducted
         if self.health <= 0:
             self.check_alive()  # Check if the enemy is dead
+            score_manager.add_points(50)
 
     def update(self, player):
         """Update enemy logic."""
@@ -1027,12 +1033,12 @@ class Scoring:
         self.score = 0
         self.checkpoint_score = 0
 
-    def display_score(self, screen, x, y):
+    def display_score(self, screen, x, y, ammo_text_height):
         """Display the current score on the screen."""
-        score_str = f"{self.score:06d}"  # Format score to 6 digits with leading zeros
-        score_surface = self.font.render(score_str, True, WHITE)  # White color
-        screen.blit(score_surface, (x, y + 30))  # Position score on the screen
-
+        score_str = f"{int(self.score):06d}"  # Format score to 6 digits with leading zeros
+        score_surface = self.font.render(f"Score: {score_str}", True, WHITE)  # White color
+        screen.blit(score_surface, (x, y + ammo_text_height + 10))  # Position score on the screen
+        
     def save_score(self, filename):
         """Save the current score to a file."""
         with open(filename, 'w') as f:
@@ -1129,10 +1135,7 @@ def draw_crosshair(screen, player_pos, mouse_pos):
     # Draw the inner circle on the mouse position (aim indicator)
     pygame.draw.circle(screen, inner_circle_color, mouse_pos, inner_circle_radius)  # Red circle follows mouse
 
-def display_ammo(screen, current_ammo, max_ammo, x, y):
-		font = pygame.font.SysFont('Montserrat', 20)
-		ammo_text = font.render(f'Ammo: {current_ammo}/{max_ammo}', True, WHITE)
-		screen.blit(ammo_text, (x, y + 30))
+
 
 class HealthBar():
     def __init__(self, x, y, health, max_health, width=200, height=20):
@@ -1159,7 +1162,7 @@ class HealthBar():
 
     def display_health(screen, health):
         font = pygame.font.SysFont('Futura', 30)
-        health_text = font.render(f'Health: {health}', True, (255, 255, 255))
+        health_text = font.render(f'Health: {health}', True, BLUE)
         screen.blit(health_text, (10, 10))
 
 	
@@ -1271,7 +1274,7 @@ class World():
                     elif tile == 30:  # Create wall
                         wall = Wall(img, x * TILE_SIZE, y * TILE_SIZE)
                         wall_group.add(wall)    
-                    elif tile == 105:  # Create boss
+                    elif tile == 105 and level == 4 :  # Create boss
                         boss = Boss(x * TILE_SIZE, y * TILE_SIZE, 3, 50)  
                         boss_group.add(boss)
                     elif tile == 101:  # Create flying enemy
@@ -1398,7 +1401,7 @@ player, health_bar, platform_group, wall_group, boss_group = world.process_data(
 moving_platform_horizontal = MovingPlatform(x=100, y=300, width=100, height=20, direction='horizontal', speed=2)
 moving_platform_vertical = MovingPlatform(x=300, y=200, width=100, height=20, direction='vertical', speed=2)
 moving_platform_circular = MovingPlatform(x=400, y=300, width=20, height=20, direction='circular', speed=2)
-platforms_group = pygame.sprite.Group(moving_platform_horizontal, moving_platform_vertical, moving_platform_circular)
+platforms_group = pygame.sprite.Group()
 
 
 class Boss(NormalEnemy):
@@ -1883,6 +1886,8 @@ while running:
                 jump_fx.play()
             if event.key == pygame.K_ESCAPE:
                 running = False
+            if event.key == pygame.K_r:  # Press 'R' to reload manually
+                player.gun.start_reload()
 
         #keyboard button released
         if event.type == pygame.KEYUP:
@@ -1905,7 +1910,9 @@ while running:
             if event.button == 1:  # Left mouse button
                 shoot = False
     
-    
+    if shoot and not player.gun.is_reloading:
+        player.gun.shoot(player.rect.center, mouse_pos)  # Shoot based on the cooldown
+
     # --- Game State Management ---
     if start_game == False:
         # Handle start menu
@@ -1925,11 +1932,12 @@ while running:
     else:
         # --- LEVEL-SPECIFIC BACKGROUND DRAWING ---
         if level == 3:
-            draw_bg_3()  # Call the background drawing function for level 3
+            draw_bg_3() 
         if level == 2:
             draw_bg_2()
         else:
-            draw_bg()  # Default background for other levels
+            draw_bg()  # Default background for other levels, already call for level 4
+        
         decoration_group.update()
         decoration_group.draw(screen)
         world.draw()   
@@ -1949,9 +1957,11 @@ while running:
             if hit_enemies:
                 for enemy in hit_enemies:
                     if isinstance(enemy, FlyingEnemy):  # Only applies to flying enemies
-                        enemy.take_damage(1)
+                        enemy.take_damage(2.5)
+                    elif isinstance(enemy, NormalEnemy):
+                        enemy.take_damage(2.5)    
                     bullet.kill()
-
+                    
         # When player collects health
         for collectible in collectible_group:
             collectible.update(player)  # Update each collectible
@@ -1976,8 +1986,7 @@ while running:
         
         # Shooting logic (if the player is shooting)
         if shoot and player.gun.can_shoot:
-            player.shoot(mouse_pos)  # Shoot at the mouse position
-            player.normal_gun_cooldown = player.normal_gun_shoot_interval
+            player.gun.shoot(player.rect.center, mouse_pos)
             shot_fx.play()
             # Display the score on the screen during the game loop  
 
@@ -2009,16 +2018,6 @@ while running:
 
         # Player interactions and movement logic
         if player.alive:
-            # Shooting bullets
-            if shoot and player.shoot_cooldown == 0:
-                angle = math.atan2(mouse_pos[1] - player.rect.centery, mouse_pos[0] - player.rect.centerx)
-                player.create_bullet(mouse_pos)
-                shot_fx.play()
-                player.shoot_cooldown = 15  # Cooldown to control fire rate
-            elif player.shoot_cooldown > 0:
-                player.shoot_cooldown -= 1
-
-
             # Handle player movement
             if player.in_air:
                 player.update_action(2)  # Jumping
@@ -2046,12 +2045,14 @@ while running:
                                 world_data[x][y] = int(tile)
                     world = World()
                     player, health_bar = world.process_data(world_data)
+                
                 elif level == 4:  # Load Boss Level
                     boss, platform_group = load_boss_level()
                     world_data = reset_level()  # Empty the current world and create a boss fight environment
                     world = World()  # Initialize an empty world for this level
                     player, health_bar = world.process_data(world_data)
                     boss.update(player, platform_group)
+        
         # --- Player Death Handling ---
         else:
             screen_scroll = 0
@@ -2091,9 +2092,7 @@ while running:
             boss.draw_health_bar_on_top(screen)
             screen.blit(boss.image, boss.rect)
             boss.draw_shield(screen)  # Draw the shield in phase 2
-
             
-
             # Update the boss logic and draw shield, health bar, etc.
             if boss.alive:
                 if boss.phase == 2:
@@ -2157,10 +2156,10 @@ while running:
 
         # --- HUD Elements ---
         health_bar.draw(screen,player.health,10, 10)
-        score_manager.display_score(screen, x, y)
+        ammo_text_height = player.gun.display_ammo(screen, 10, 10, health_bar)
+        score_manager.display_score(screen, 5, 5 + health_bar.height, ammo_text_height)
         HealthBar.display_health(screen, player.health)
-        display_ammo(screen, player.gun.ammo, player.gun.max_ammo, 10, 10 + health_bar.height)
-        
+        player.gun.display_ammo(screen, 10, 10, health_bar)
         
         # Draw crosshair
         draw_crosshair(screen, player.rect.center, pygame.mouse.get_pos())
