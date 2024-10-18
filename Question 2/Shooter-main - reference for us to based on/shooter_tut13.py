@@ -267,6 +267,7 @@ class Soldier(pygame.sprite.Sprite):
 				or (self.rect.left < SCROLL_THRESH and bg_scroll > abs(dx)):
 				self.rect.x -= dx
 				screen_scroll = -dx
+		
 
 		return screen_scroll, level_complete
 

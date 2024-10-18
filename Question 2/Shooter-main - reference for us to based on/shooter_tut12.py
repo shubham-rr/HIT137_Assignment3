@@ -401,6 +401,7 @@ class Decoration(pygame.sprite.Sprite):
 		self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
 	def update(self):
+		global screen_scroll
 		self.rect.x += screen_scroll
 
 
