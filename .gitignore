@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# custom
+question2/assets/other/
+
+
 # C extensions
 *.so
 
