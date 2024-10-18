@@ -10,6 +10,7 @@ from object_detector import ObjectDetector
 from constants import *
 import sys
 
+
 # The ObjectDetectorGUI class encapsulates all the functionality for the GUI application
 # This demonstrates the OOP principle of encapsulation
 class ObjectDetectorGUI:
@@ -35,7 +36,10 @@ class ObjectDetectorGUI:
             self.current_filename = None
             self.home_page()
         except Exception as e:
-            self.show_error("Initialization Error", f"An error occurred during initialization: {str(e)}")
+            self.show_error(
+                "Initialization Error",
+                f"An error occurred during initialization: {str(e)}",
+            )
 
     # Encapsulation: This method is used to show errors, hiding the implementation details
     def show_error(self, title, message):
@@ -44,18 +48,21 @@ class ObjectDetectorGUI:
     # Methods like setup_window, create_page_frame, create_side_menu, etc., demonstrate
     # the principle of abstraction by hiding the complex implementation details
     def setup_window(self):
-        self.window.geometry("%dx%d+0+0" % (self.window.winfo_screenwidth(), self.window.winfo_screenheight()))
+        self.window.geometry(
+            "%dx%d+0+0"
+            % (self.window.winfo_screenwidth(), self.window.winfo_screenheight())
+        )
         self.window.minsize(1000, 600)
-        self.window.title('Object Detector')
+        self.window.title("Object Detector")
         self.window.iconphoto(False, PhotoImage(file=LOGO_PATH))
 
     def resize_image(self, image_path, size):
         image = Image.open(image_path)
-        resized_image = image.resize(size, Image.LANCZOS)  
+        resized_image = image.resize(size, Image.LANCZOS)
         return ImageTk.PhotoImage(resized_image)
 
     def create_side_menu(self):
-        self.side_menu_color = 'white'
+        self.side_menu_color = "white"
         self.side_menu = tk.Frame(self.window, bg=self.side_menu_color)
 
         self.toggle_icon = self.resize_image(LOGO_PATH, (30, 30))
@@ -64,12 +71,21 @@ class ObjectDetectorGUI:
         self.info_icon = self.resize_image(INFO_ICON_PATH, (25, 25))
         self.setting_icon = self.resize_image(SETTING_ICON_PATH, (30, 30))
 
-        self.toggle_menu_btn = tk.Button(self.side_menu, image=self.toggle_icon, bg=self.side_menu_color, bd=0, 
-                                         activebackground=self.side_menu_color, cursor="hand2", command=self.extend_side_menu)
+        self.toggle_menu_btn = tk.Button(
+            self.side_menu,
+            image=self.toggle_icon,
+            bg=self.side_menu_color,
+            bd=0,
+            activebackground=self.side_menu_color,
+            cursor="hand2",
+            command=self.extend_side_menu,
+        )
         self.toggle_menu_btn.place(x=5, y=10)
 
         self.create_menu_item("Home", self.home_icon, 130, self.home_page)
-        self.create_menu_item("Instruction", self.instruction_icon, 200, self.instruction_page)
+        self.create_menu_item(
+            "Instruction", self.instruction_icon, 200, self.instruction_page
+        )
         self.create_menu_item("Setting", self.setting_icon, 270, self.setting_page)
         self.create_menu_item("Info", self.info_icon, 340, self.info_page)
 
@@ -81,15 +97,28 @@ class ObjectDetectorGUI:
         frame = tk.Frame(self.side_menu, bg=self.side_menu_color)
         frame.place(x=0, y=y_pos, width=200, height=40)
 
-        btn = tk.Button(frame, image=icon, bg=self.side_menu_color, bd=0, 
-                        activebackground=self.side_menu_color, cursor="hand2",
-                        command=lambda: self.switch_indication(indicator, command))
+        btn = tk.Button(
+            frame,
+            image=icon,
+            bg=self.side_menu_color,
+            bd=0,
+            activebackground=self.side_menu_color,
+            cursor="hand2",
+            command=lambda: self.switch_indication(indicator, command),
+        )
         btn.pack(side=tk.LEFT, padx=(9, 0))
 
-        label = tk.Label(frame, text=text, bg=self.side_menu_color, fg='black',
-                         font=('Roboto', 16), anchor=tk.W, cursor='hand2')
+        label = tk.Label(
+            frame,
+            text=text,
+            bg=self.side_menu_color,
+            fg="black",
+            font=("Roboto", 16),
+            anchor=tk.W,
+            cursor="hand2",
+        )
         label.pack(side=tk.LEFT, padx=(10, 0))
-        label.bind('<Button-1>', lambda e: self.switch_indication(indicator, command))
+        label.bind("<Button-1>", lambda e: self.switch_indication(indicator, command))
 
         indicator = tk.Label(self.side_menu, bg=self.side_menu_color)
         indicator.place(x=3, y=y_pos, height=35, width=3)
@@ -102,63 +131,68 @@ class ObjectDetectorGUI:
         self.page_frame.place(relwidth=1.0, relheight=1.0, x=50)
 
     def switch_indication(self, indication_lb, page):
-        for attr in ['home', 'instruction', 'setting', 'info']:
+        for attr in ["home", "instruction", "setting", "info"]:
             getattr(self, f"{attr}_menu_indicator").config(bg=self.side_menu_color)
-        
-        indication_lb.config(bg='#bbada6')
+
+        indication_lb.config(bg="#bbada6")
         if self.side_menu.winfo_width() > 45:
             self.fold_side_menu()
-        
+
         for frame in self.page_frame.winfo_children():
             frame.destroy()
-                
+
         page()
 
     def extend_side_menu(self):
         self.side_menu.config(width=200)
         self.toggle_menu_btn.config(command=self.fold_side_menu)
-        for attr in ['home', 'instruction', 'setting', 'info']:
+        for attr in ["home", "instruction", "setting", "info"]:
             frame = getattr(self, f"{attr}_menu_frame")
             frame.config(width=200)
 
     def fold_side_menu(self):
         self.side_menu.config(width=45)
         self.toggle_menu_btn.config(command=self.extend_side_menu)
-        for attr in ['home', 'instruction', 'setting', 'info']:
+        for attr in ["home", "instruction", "setting", "info"]:
             frame = getattr(self, f"{attr}_menu_frame")
             frame.config(width=45)
 
     def update_clock(self, label):
-        current_time = strftime('%H:%M:%S %p')
+        current_time = strftime("%H:%M:%S %p")
         label.config(text=current_time)
         label.after(1000, self.update_clock, label)
 
     def home_page(self):
-        main_frame = tk.Frame(self.page_frame, bg='white')
+        main_frame = tk.Frame(self.page_frame, bg="white")
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         # Constant frame at the top with increased height
-        header_frame = ttk.Frame(main_frame, height=100, style='Header.TFrame')
+        header_frame = ttk.Frame(main_frame, height=100, style="Header.TFrame")
         header_frame.pack(side=tk.TOP, fill=tk.X)
 
         # Load and display the logo
         logo_image = self.resize_image(LOGO_PATH, (40, 40))
-        logo_label = ttk.Label(header_frame, image=logo_image, background='white')
+        logo_label = ttk.Label(header_frame, image=logo_image, background="white")
         logo_label.image = logo_image  # Keep a reference to avoid garbage collection
         logo_label.pack(side=tk.LEFT, padx=10)
 
         # Add content to the constant header frame
-        ttk.Label(header_frame, text="Object Detector GUI", font=('Roboto', 20), background='white').pack(side=tk.LEFT, padx=2)
+        ttk.Label(
+            header_frame,
+            text="Object Detector GUI",
+            font=("Roboto", 20),
+            background="white",
+        ).pack(side=tk.LEFT, padx=2)
 
         # Create a label for the digital clock
-        clock_label = ttk.Label(header_frame, font=('Roboto', 20), background='white')
+        clock_label = ttk.Label(header_frame, font=("Roboto", 20), background="white")
         clock_label.pack(side=tk.RIGHT, padx=60)
 
         # Start the clock update function
         self.update_clock(clock_label)
 
         # Container frame for the two dynamic frames
-        content_frame = tk.Frame(main_frame, bg='white')
+        content_frame = tk.Frame(main_frame, bg="white")
         content_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
         # First frame: takes up 2/3 of the screen
@@ -168,9 +202,11 @@ class ObjectDetectorGUI:
 
         # Second frame: takes up the remaining 1/3 of the screen
         frame2 = ttk.Frame(content_frame, style="Frame2.TFrame")
-        frame2.place(relx=0.67, rely=0, relwidth=0.33, relheight=1)  # Remaining 1/3 width
+        frame2.place(
+            relx=0.67, rely=0, relwidth=0.33, relheight=1
+        )  # Remaining 1/3 width
         frame2.pack_propagate(False)
-        
+
         # Create three sub-frames within frame1
         frame1_top = ttk.Frame(frame1, style="Frame1Top.TFrame")
         frame1_top.place(relx=0, rely=0, relwidth=1, relheight=0.1)  # 0.5/5 height
@@ -189,20 +225,20 @@ class ObjectDetectorGUI:
 
         # Create styles for colored frames
         style = ttk.Style()
-        style.configure('Header.TFrame', background='white')
-        style.configure('Frame1.TFrame', background='white')
-        style.configure('Frame2.TFrame', background='white')
-        style.configure('Frame1Top.TFrame', background='white')
-        style.configure('Frame1Middle.TFrame', background='white')
-        style.configure('Frame1Bottom.TFrame', background='white')
+        style.configure("Header.TFrame", background="white")
+        style.configure("Frame1.TFrame", background="white")
+        style.configure("Frame2.TFrame", background="white")
+        style.configure("Frame1Top.TFrame", background="white")
+        style.configure("Frame1Middle.TFrame", background="white")
+        style.configure("Frame1Bottom.TFrame", background="white")
 
     def add_frame1_top_content(self, frame):
         # Create a frame for the buttons to help center them
-        button_frame = tk.Frame(frame, bg='white')
+        button_frame = tk.Frame(frame, bg="white")
         button_frame.pack(expand=True, fill=tk.BOTH)
 
         # Create a nested frame to hold the buttons
-        inner_button_frame = tk.Frame(button_frame, bg='white')
+        inner_button_frame = tk.Frame(button_frame, bg="white")
         inner_button_frame.pack(expand=True)
 
         # Create a style for the button
@@ -210,14 +246,20 @@ class ObjectDetectorGUI:
         style.configure("TButton", font=("Roboto", 15))
 
         # Create buttons with fixed width
-        self.start_stop_button = ttk.Button(inner_button_frame, text="Start Detection", command=self.toggle_detection)
-        self.start_stop_button.config(width=15, cursor='hand2')
+        self.start_stop_button = ttk.Button(
+            inner_button_frame, text="Start Detection", command=self.toggle_detection
+        )
+        self.start_stop_button.config(width=15, cursor="hand2")
 
-        camera_button = ttk.Button(inner_button_frame, text="Camera On/Off", command=self.toggle_camera)
-        camera_button.config(width=15, cursor='hand2')
+        camera_button = ttk.Button(
+            inner_button_frame, text="Camera On/Off", command=self.toggle_camera
+        )
+        camera_button.config(width=15, cursor="hand2")
 
-        upload_button = ttk.Button(inner_button_frame, text="Upload File", command=self.upload_file)
-        upload_button.config(width=15, cursor='hand2')
+        upload_button = ttk.Button(
+            inner_button_frame, text="Upload File", command=self.upload_file
+        )
+        upload_button.config(width=15, cursor="hand2")
 
         # Pack buttons in inner_button_frame next to each other with padding
         self.start_stop_button.pack(side=tk.LEFT, padx=(0, 50))
@@ -229,36 +271,48 @@ class ObjectDetectorGUI:
 
     def add_frame1_middle_content(self, frame):
         # Create a canvas to display the image or video
-        self.display_canvas = tk.Canvas(frame, bg='black')
+        self.display_canvas = tk.Canvas(frame, bg="black")
         self.display_canvas.pack(fill=tk.BOTH, expand=True)
 
     def add_frame1_bottom_content(self, frame):
         # Create a frame to hold the buttons and center them
-        button_frame_bottom = tk.Frame(frame, bg='white')  # Set background to white
-        button_frame_bottom.pack(expand=True, fill=tk.BOTH)  # Use expand and fill to cover the entire area
+        button_frame_bottom = tk.Frame(frame, bg="white")  # Set background to white
+        button_frame_bottom.pack(
+            expand=True, fill=tk.BOTH
+        )  # Use expand and fill to cover the entire area
 
         # Create a style for the button
         style = ttk.Style()
         style.configure("TButton", font=("Roboto", 15))
 
         # Create buttons with fixed width
-        next_button = ttk.Button(button_frame_bottom, text="Next", command=self.next_upload)
+        next_button = ttk.Button(
+            button_frame_bottom, text="Next", command=self.next_upload
+        )
         next_button.config(width=15)
-        previous_button = ttk.Button(button_frame_bottom, text="Previous", command=self.previous_upload)
+        previous_button = ttk.Button(
+            button_frame_bottom, text="Previous", command=self.previous_upload
+        )
         previous_button.config(width=15)
-        save_button = ttk.Button(button_frame_bottom, text="Save", command=self.save_current_frame)
+        save_button = ttk.Button(
+            button_frame_bottom, text="Save", command=self.save_current_frame
+        )
         save_button.config(width=15)
-        clear_button = ttk.Button(button_frame_bottom, text="Clear", command=self.clear_display)
+        clear_button = ttk.Button(
+            button_frame_bottom, text="Clear", command=self.clear_display
+        )
         clear_button.config(width=15)
-        quit_button = ttk.Button(button_frame_bottom, text="Quit", command=self.quit_application)
+        quit_button = ttk.Button(
+            button_frame_bottom, text="Quit", command=self.quit_application
+        )
         quit_button.config(width=15)
 
         # Pack buttons in button_frame_bottom next to each other with padding
-        next_button.pack(side=tk.LEFT, padx=(0, 10))  
-        previous_button.pack(side=tk.LEFT, padx=(0, 100))  
-        save_button.pack(side=tk.LEFT, padx=(0, 10))  
-        clear_button.pack(side=tk.LEFT, padx=(0, 100))  
-        quit_button.pack(side=tk.LEFT) 
+        next_button.pack(side=tk.LEFT, padx=(0, 10))
+        previous_button.pack(side=tk.LEFT, padx=(0, 100))
+        save_button.pack(side=tk.LEFT, padx=(0, 10))
+        clear_button.pack(side=tk.LEFT, padx=(0, 100))
+        quit_button.pack(side=tk.LEFT)
 
         # Center the button_frame_bottom within frame1_bottom
         button_frame_bottom.update_idletasks()  # Ensure frame has the proper dimensions
@@ -267,40 +321,62 @@ class ObjectDetectorGUI:
     def add_frame2_content(self, frame):
         # Create sub-frames within frame2
         frame2_top = ttk.Frame(frame, style="Frame2Top.TFrame")
-        frame2_top.place(relx=0, rely=0, relwidth=1, relheight=0.1)  # 10% height for top
+        frame2_top.place(
+            relx=0, rely=0, relwidth=1, relheight=0.1
+        )  # 10% height for top
 
         frame2_middle = ttk.Frame(frame, style="Frame2Middle.TFrame")
-        frame2_middle.place(relx=0, rely=0.1, relwidth=1, relheight=0.4)  # 40% height for middle (half of frame1_middle)
+        frame2_middle.place(
+            relx=0, rely=0.1, relwidth=1, relheight=0.4
+        )  # 40% height for middle (half of frame1_middle)
 
         frame2_bottom = ttk.Frame(frame, style="Frame2Bottom.TFrame")
-        frame2_bottom.place(relx=0, rely=0.5, relwidth=1, relheight=0.5)  # 50% height for bottom
+        frame2_bottom.place(
+            relx=0, rely=0.5, relwidth=1, relheight=0.5
+        )  # 50% height for bottom
 
         # Add "Detection History" label to frame2_top, centered both vertically and horizontally
-        detection_history_label = ttk.Label(frame2_top, text="Detection History", background='white', font=('Roboto', 12, 'bold'))
-        detection_history_label.place(relx=0.5, rely=0.5, anchor='center')  # Center both vertically and horizontally
+        detection_history_label = ttk.Label(
+            frame2_top,
+            text="Detection History",
+            background="white",
+            font=("Roboto", 12, "bold"),
+        )
+        detection_history_label.place(
+            relx=0.5, rely=0.5, anchor="center"
+        )  # Center both vertically and horizontally
 
         # Add detection history panel to frame2_middle
         self.create_history_panel(frame2_middle)
 
         # Add "Upload History" label and panel to frame2_bottom
-        upload_history_label = ttk.Label(frame2_bottom, text="Upload History", background='white', font=('Roboto', 12, 'bold'))
-        upload_history_label.pack(pady=(5, 0), anchor='center')  # Center horizontally
+        upload_history_label = ttk.Label(
+            frame2_bottom,
+            text="Upload History",
+            background="white",
+            font=("Roboto", 12, "bold"),
+        )
+        upload_history_label.pack(pady=(5, 0), anchor="center")  # Center horizontally
 
         self.create_upload_history_panel(frame2_bottom)
 
         # Create styles for the new frames
         style = ttk.Style()
-        style.configure("Frame2Top.TFrame", background='white')
-        style.configure("Frame2Middle.TFrame", background='white')
-        style.configure("Frame2Bottom.TFrame", background='white')
+        style.configure("Frame2Top.TFrame", background="white")
+        style.configure("Frame2Middle.TFrame", background="white")
+        style.configure("Frame2Bottom.TFrame", background="white")
 
     def create_history_panel(self, frame):
         # Create a Text widget for the history panel
-        self.history_text = tk.Text(frame, wrap=tk.WORD, font=('Roboto', 10), bd=2, relief=tk.GROOVE)
+        self.history_text = tk.Text(
+            frame, wrap=tk.WORD, font=("Roboto", 10), bd=2, relief=tk.GROOVE
+        )
         self.history_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # Create a scrollbar for the history panel
-        scrollbar = ttk.Scrollbar(self.history_text, orient="vertical", command=self.history_text.yview)
+        scrollbar = ttk.Scrollbar(
+            self.history_text, orient="vertical", command=self.history_text.yview
+        )
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # Configure the Text widget to use the scrollbar
@@ -322,7 +398,9 @@ class ObjectDetectorGUI:
 
             if detected_objects:
                 self.history_text.config(state=tk.NORMAL)
-                self.history_text.insert(tk.END, f"Detected objects at {strftime('%H:%M:%S')}:\n")
+                self.history_text.insert(
+                    tk.END, f"Detected objects at {strftime('%H:%M:%S')}:\n"
+                )
                 for obj, count in detected_objects.items():
                     self.history_text.insert(tk.END, f"- {obj}: {count}\n")
                 self.history_text.insert(tk.END, "\n")
@@ -331,11 +409,17 @@ class ObjectDetectorGUI:
 
     def create_upload_history_panel(self, frame):
         # Create a Text widget for the upload history panel
-        self.upload_history_text = tk.Text(frame, wrap=tk.WORD, font=('Roboto', 10), bd=2, relief=tk.GROOVE)
+        self.upload_history_text = tk.Text(
+            frame, wrap=tk.WORD, font=("Roboto", 10), bd=2, relief=tk.GROOVE
+        )
         self.upload_history_text.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
         # Create a scrollbar for the upload history panel
-        scrollbar = ttk.Scrollbar(self.upload_history_text, orient="vertical", command=self.upload_history_text.yview)
+        scrollbar = ttk.Scrollbar(
+            self.upload_history_text,
+            orient="vertical",
+            command=self.upload_history_text.yview,
+        )
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
         # Configure the Text widget to use the scrollbar
@@ -350,7 +434,9 @@ class ObjectDetectorGUI:
         main_frame.pack(fill=tk.BOTH, expand=True)
 
         # Constant frame at the top with increased height
-        header_frame = ttk.Frame(main_frame, height=100, relief=tk.RAISED, borderwidth=1)
+        header_frame = ttk.Frame(
+            main_frame, height=100, relief=tk.RAISED, borderwidth=1
+        )
         header_frame.pack(side=tk.TOP, fill=tk.X)
 
         # Load and display the logo
@@ -360,10 +446,12 @@ class ObjectDetectorGUI:
         logo_label.pack(side=tk.LEFT, padx=10)
 
         # Add content to the constant header frame
-        ttk.Label(header_frame, text="Object Detector GUI", font=('Roboto', 20)).pack(side=tk.LEFT, padx=2)
+        ttk.Label(header_frame, text="Object Detector GUI", font=("Roboto", 20)).pack(
+            side=tk.LEFT, padx=2
+        )
 
         # Create a label for the digital clock
-        clock_label = ttk.Label(header_frame, font=('Roboto', 20))
+        clock_label = ttk.Label(header_frame, font=("Roboto", 20))
         clock_label.pack(side=tk.RIGHT, padx=60)
 
         # Start the clock update function
@@ -372,7 +460,7 @@ class ObjectDetectorGUI:
         # Container frame for the two dynamic frames
         content_frame = tk.Frame(main_frame)
         content_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        
+
         # First frame: 3/10 width, height 1
         frame3 = ttk.Frame(content_frame, style="Frame3.TFrame")
         frame3.place(relx=0, rely=0, relwidth=0.3, relheight=1)
@@ -380,7 +468,7 @@ class ObjectDetectorGUI:
 
         # Create a custom style for the button label
         button_style = ttk.Style()
-        button_style.configure("ButtonLabel.TLabel", font=('Roboto', 30))
+        button_style.configure("ButtonLabel.TLabel", font=("Roboto", 30))
 
         # Add a label centered at the top of frame3
         button_label = ttk.Label(frame3, text="BUTTON", style="ButtonLabel.TLabel")
@@ -388,12 +476,22 @@ class ObjectDetectorGUI:
 
         # Create a custom style for the images
         image_style = ttk.Style()
-        image_style.configure("ImageLabel.TLabel", font=('Roboto', 15))
+        image_style.configure("ImageLabel.TLabel", font=("Roboto", 15))
 
         # Add images with 50 pixels spacing
         y_pos = 0.15
-        image_files = [L_ARROW_ICON_PATH, ABOUT_ICON_PATH, ACCOUNT_ICON_PATH, HOME_ICON_PATH, HOME_PATH,
-                       INFO_ICON_PATH, INSTRUCTION_ICON_PATH, LOGO_PATH, R_ARROW_ICON_PATH, SETTING_ICON_PATH]
+        image_files = [
+            L_ARROW_ICON_PATH,
+            ABOUT_ICON_PATH,
+            ACCOUNT_ICON_PATH,
+            HOME_ICON_PATH,
+            HOME_PATH,
+            INFO_ICON_PATH,
+            INSTRUCTION_ICON_PATH,
+            LOGO_PATH,
+            R_ARROW_ICON_PATH,
+            SETTING_ICON_PATH,
+        ]
         for i, image_file in enumerate(image_files):
             image = self.resize_image(image_file, (20, 20))
             image_label = ttk.Label(frame3, image=image, style="ImageLabel.TLabel")
@@ -408,11 +506,13 @@ class ObjectDetectorGUI:
 
         # Create a custom style for the instruction label and text
         instruction_style = ttk.Style()
-        instruction_style.configure("InstructionLabel.TLabel", font=('Roboto', 30))
-        instruction_style.configure("InstructionText.TLabel", font=('Roboto', 15))
+        instruction_style.configure("InstructionLabel.TLabel", font=("Roboto", 30))
+        instruction_style.configure("InstructionText.TLabel", font=("Roboto", 15))
 
         # Add the "INSTRUCTION" label
-        instruction_label = ttk.Label(frame4, text="INSTRUCTION", style="InstructionLabel.TLabel")
+        instruction_label = ttk.Label(
+            frame4, text="INSTRUCTION", style="InstructionLabel.TLabel"
+        )
         instruction_label.place(relx=0.5, rely=0.05, anchor=tk.N)
 
         # Add instructions
@@ -428,18 +528,19 @@ class ObjectDetectorGUI:
             "Clear the picture/video uploaded",
             "Exit the application",
             "The ninth instruction delves into the button's advanced features and customization options.",
-            "The tenth instruction summarizes the key points regarding the button's usage and benefits."
+            "The tenth instruction summarizes the key points regarding the button's usage and benefits.",
         ]
         for instruction in instructions:
-            instruction_label = ttk.Label(frame4, text=instruction, style="InstructionText.TLabel", wraplength=500)
+            instruction_label = ttk.Label(
+                frame4, text=instruction, style="InstructionText.TLabel", wraplength=500
+            )
             instruction_label.place(relx=0.05, rely=y_pos, anchor=tk.W)
             y_pos += 0.075
 
         # Create styles for frames (remove background colors)
         style = ttk.Style()
-        style.configure('Frame3.TFrame', borderwidth=2, relief="groove")
-        style.configure('Frame4.TFrame', borderwidth=2, relief="groove")
-
+        style.configure("Frame3.TFrame", borderwidth=2, relief="groove")
+        style.configure("Frame4.TFrame", borderwidth=2, relief="groove")
 
     def setting_page(self):
         # Create a main container to hold the content
@@ -448,22 +549,27 @@ class ObjectDetectorGUI:
 
         # Create a centered frame within the main frame
         center_frame = tk.Frame(main_frame)
-        center_frame.place(relx=0.5, rely=0.5, anchor='center')
+        center_frame.place(relx=0.5, rely=0.5, anchor="center")
 
         # Create a style for the labels
         style = ttk.Style()
-        style.configure("Settings.TLabel", font=('Roboto', 12), padding=10, justify='center')
+        style.configure(
+            "Settings.TLabel", font=("Roboto", 12), padding=10, justify="center"
+        )
 
         # Add the first message
         message1 = "Webcam feature is available but not optimized to run smoothly. Please use at your own discretion."
-        label1 = ttk.Label(center_frame, text=message1, style="Settings.TLabel", wraplength=500)
+        label1 = ttk.Label(
+            center_frame, text=message1, style="Settings.TLabel", wraplength=500
+        )
         label1.pack(pady=(0, 10))
 
         # Add the second message
         message2 = "The program runs well with Image and Video files. Please try it using the input files provided or try it with your own image/video file."
-        label2 = ttk.Label(center_frame, text=message2, style="Settings.TLabel", wraplength=500)
+        label2 = ttk.Label(
+            center_frame, text=message2, style="Settings.TLabel", wraplength=500
+        )
         label2.pack(pady=(0, 10))
-        
 
     def info_page(self):
         # Create a main container to hold the constant top frame and the dynamic frame area
@@ -481,10 +587,12 @@ class ObjectDetectorGUI:
         logo_label.pack(side=tk.LEFT, padx=10)
 
         # Add content to the constant header frame
-        ttk.Label(header_frame, text="Object Detector GUI", font=('Roboto', 20)).pack(side=tk.LEFT, padx=2)
+        ttk.Label(header_frame, text="Object Detector GUI", font=("Roboto", 20)).pack(
+            side=tk.LEFT, padx=2
+        )
 
         # Create a label for the digital clock
-        clock_label = ttk.Label(header_frame, font=('Roboto', 20))
+        clock_label = ttk.Label(header_frame, font=("Roboto", 20))
         clock_label.pack(side=tk.RIGHT, padx=60)
 
         # Start the clock update function
@@ -493,28 +601,42 @@ class ObjectDetectorGUI:
         # Container frame for the two dynamic frames
         content_frame = tk.Frame(main_frame)
         content_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-        
+
         # First frame: 25% height, "COURSE INFO":
         course_info_frame = ttk.Frame(content_frame)
         course_info_frame.place(relx=0, rely=0, relwidth=1, relheight=0.25)
 
-        course_info_label = ttk.Label(course_info_frame, text="COURSE INFO", font=('Roboto', 24))
+        course_info_label = ttk.Label(
+            course_info_frame, text="COURSE INFO", font=("Roboto", 24)
+        )
         course_info_label.place(relx=0.5, rely=0.1, anchor=tk.N)
 
-        course_name_label = ttk.Label(course_info_frame, text="Course name: HIT137 SOFTWARE NOW", font=('Roboto', 14))
+        course_name_label = ttk.Label(
+            course_info_frame,
+            text="Course name: HIT137 SOFTWARE NOW",
+            font=("Roboto", 14),
+        )
         course_name_label.place(relx=0.5, rely=0.4, anchor=tk.N)
 
-        lecturer_name_label = ttk.Label(course_info_frame, text="Lecturer name: Dr Thuseethan Selvarajah", font=('Roboto', 14))
+        lecturer_name_label = ttk.Label(
+            course_info_frame,
+            text="Lecturer name: Dr Thuseethan Selvarajah",
+            font=("Roboto", 14),
+        )
         lecturer_name_label.place(relx=0.5, rely=0.6, anchor=tk.N)
 
-        semester_label = ttk.Label(course_info_frame, text="Semester 2 - 2024", font=('Roboto', 14))
+        semester_label = ttk.Label(
+            course_info_frame, text="Semester 2 - 2024", font=("Roboto", 14)
+        )
         semester_label.place(relx=0.5, rely=0.8, anchor=tk.N)
 
         # Second frame: 75% height, "STUDENT INFO":
         student_info_frame = ttk.Frame(content_frame)
         student_info_frame.place(relx=0, rely=0.25, relwidth=1, relheight=0.75)
 
-        student_info_label = ttk.Label(student_info_frame, text="STUDENT INFO", font=('Roboto', 24))
+        student_info_label = ttk.Label(
+            student_info_frame, text="STUDENT INFO", font=("Roboto", 24)
+        )
         student_info_label.place(relx=0.5, rely=0.05, anchor=tk.N)
 
         # Create 4 smaller frames within the student info frame
@@ -532,28 +654,69 @@ class ObjectDetectorGUI:
 
         # Function to create student info labels
         def create_student_labels(frame, student_num, name, id, course, email):
-            ttk.Label(frame, text=f"Student {student_num}", font=('Roboto', 16)).place(relx=0.5, rely=0.05, anchor=tk.N)
-            ttk.Label(frame, text=f"Name: {name}", font=('Roboto', 12)).place(relx=0.1, rely=0.2, anchor=tk.W)
-            ttk.Label(frame, text=f"ID: {id}", font=('Roboto', 12)).place(relx=0.1, rely=0.4, anchor=tk.W)
-            ttk.Label(frame, text=f"Course: {course}", font=('Roboto', 12)).place(relx=0.1, rely=0.6, anchor=tk.W)
-            ttk.Label(frame, text=f"Email: {email}", font=('Roboto', 12)).place(relx=0.1, rely=0.8, anchor=tk.W)
+            ttk.Label(frame, text=f"Student {student_num}", font=("Roboto", 16)).place(
+                relx=0.5, rely=0.05, anchor=tk.N
+            )
+            ttk.Label(frame, text=f"Name: {name}", font=("Roboto", 12)).place(
+                relx=0.1, rely=0.2, anchor=tk.W
+            )
+            ttk.Label(frame, text=f"ID: {id}", font=("Roboto", 12)).place(
+                relx=0.1, rely=0.4, anchor=tk.W
+            )
+            ttk.Label(frame, text=f"Course: {course}", font=("Roboto", 12)).place(
+                relx=0.1, rely=0.6, anchor=tk.W
+            )
+            ttk.Label(frame, text=f"Email: {email}", font=("Roboto", 12)).place(
+                relx=0.1, rely=0.8, anchor=tk.W
+            )
 
         # Add labels for each student frame
-        create_student_labels(student1_frame, 1, "Shubham Maharjan", "S384155", "M. of Cyber Security", "S384155@students.cdu.edu.au")
-        create_student_labels(student2_frame, 2, "Huong Thao Trinh", "S381757", "M. Data Science", "S381757@students.cdu.edu.au")
-        create_student_labels(student3_frame, 3, "Thien Phuc Tran", "S383410", "M. of Software Engineering", "S383410@students.cdu.edu.au")
-        create_student_labels(student4_frame, 4, "Muhammad Ahmad", "S382897", "B. of Information Technology", "S382897@students.cdu.edu.au")
+        create_student_labels(
+            student1_frame,
+            1,
+            "Shubham Maharjan",
+            "S384155",
+            "M. of Cyber Security",
+            "S384155@students.cdu.edu.au",
+        )
+        create_student_labels(
+            student2_frame,
+            2,
+            "Huong Thao Trinh",
+            "S381757",
+            "M. Data Science",
+            "S381757@students.cdu.edu.au",
+        )
+        create_student_labels(
+            student3_frame,
+            3,
+            "Thien Phuc Tran",
+            "S383410",
+            "M. of Software Engineering",
+            "S383410@students.cdu.edu.au",
+        )
+        create_student_labels(
+            student4_frame,
+            4,
+            "Muhammad Ahmad",
+            "S382897",
+            "B. of Information Technology",
+            "S382897@students.cdu.edu.au",
+        )
 
         # Create styles for frames
         style = ttk.Style()
         style.configure("StudentFrame.TFrame", borderwidth=2, relief="groove")
-    
+
     # This method demonstrates polymorphism, as it can handle different types of files
     def upload_file(self):
         try:
             file_path = filedialog.askopenfilename(
                 filetypes=[
-                    ("Image/Video files", "*.jpg *.jpeg *.png *.bmp *.gif *.mp4 *.avi *.mov")
+                    (
+                        "Image/Video files",
+                        "*.jpg *.jpeg *.png *.bmp *.gif *.mp4 *.avi *.mov",
+                    )
                 ]
             )
             if file_path:
@@ -563,7 +726,9 @@ class ObjectDetectorGUI:
                 self.load_file(file_path)
                 self.update_upload_history(file_path)
         except Exception as e:
-            self.show_error("Upload Error", f"An error occurred while uploading the file: {str(e)}")
+            self.show_error(
+                "Upload Error", f"An error occurred while uploading the file: {str(e)}"
+            )
 
     # This method also demonstrates polymorphism by handling different file types
     def load_file(self, file_path):
@@ -574,22 +739,27 @@ class ObjectDetectorGUI:
                 self.video_playback_id = None
 
             file_extension = os.path.splitext(file_path)[1].lower()
-            
-            if file_extension in ['.jpg', '.jpeg', '.png', '.bmp', '.gif']:
+
+            if file_extension in [".jpg", ".jpeg", ".png", ".bmp", ".gif"]:
                 self.uploaded_image = cv2.imread(file_path)
                 if self.uploaded_image is None:
                     raise ValueError("Failed to load image file")
-                self.uploaded_image = cv2.cvtColor(self.uploaded_image, cv2.COLOR_BGR2RGB)
+                self.uploaded_image = cv2.cvtColor(
+                    self.uploaded_image, cv2.COLOR_BGR2RGB
+                )
                 self.uploaded_image = cv2.resize(
                     self.uploaded_image,
-                    (self.display_canvas.winfo_width(), self.display_canvas.winfo_height()),
+                    (
+                        self.display_canvas.winfo_width(),
+                        self.display_canvas.winfo_height(),
+                    ),
                 )
                 self.display_image(self.uploaded_image)
                 self.is_video = False
                 if self.video_capture:
                     self.video_capture.release()
                     self.video_capture = None
-            elif file_extension in ['.mp4', '.avi', '.mov']:
+            elif file_extension in [".mp4", ".avi", ".mov"]:
                 if self.video_capture:
                     self.video_capture.release()
                 self.video_capture = cv2.VideoCapture(file_path)
@@ -601,7 +771,9 @@ class ObjectDetectorGUI:
 
             self.current_filename = os.path.basename(file_path)
         except Exception as e:
-            self.show_error("File Load Error", f"An error occurred while loading the file: {str(e)}")
+            self.show_error(
+                "File Load Error", f"An error occurred while loading the file: {str(e)}"
+            )
 
     # Encapsulation: This method handles the complex logic of displaying images
     def display_image(self, frame):
@@ -615,14 +787,27 @@ class ObjectDetectorGUI:
             self.display_canvas.delete("all")
             self.display_canvas.create_image(0, 0, image=self.photo, anchor=tk.NW)
         except Exception as e:
-            self.show_error("Display Error", f"An error occurred while displaying the image: {str(e)}")
+            self.show_error(
+                "Display Error",
+                f"An error occurred while displaying the image: {str(e)}",
+            )
 
     def play_uploaded_video(self):
-        if self.video_capture and self.video_capture.isOpened() and not self.is_detecting:
+        if (
+            self.video_capture
+            and self.video_capture.isOpened()
+            and not self.is_detecting
+        ):
             ret, frame = self.video_capture.read()
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert to RGB
-                frame = cv2.resize(frame, (self.display_canvas.winfo_width(), self.display_canvas.winfo_height()))
+                frame = cv2.resize(
+                    frame,
+                    (
+                        self.display_canvas.winfo_width(),
+                        self.display_canvas.winfo_height(),
+                    ),
+                )
                 self.current_frame = frame  # Update current_frame here
                 self.display_image(frame)
                 self.video_playback_id = self.window.after(30, self.play_uploaded_video)
@@ -662,7 +847,13 @@ class ObjectDetectorGUI:
                         self.video_capture.set(cv2.CAP_PROP_POS_FRAMES, 0)
                         ret, frame = self.video_capture.read()
                     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    frame = cv2.resize(frame, (self.display_canvas.winfo_width(), self.display_canvas.winfo_height()))
+                    frame = cv2.resize(
+                        frame,
+                        (
+                            self.display_canvas.winfo_width(),
+                            self.display_canvas.winfo_height(),
+                        ),
+                    )
                 else:
                     frame = self.current_frame.copy()
 
@@ -677,20 +868,29 @@ class ObjectDetectorGUI:
                     self.is_detecting = False
                     self.start_stop_button.config(text="Start Detection")
         except Exception as e:
-            self.show_error("Detection Error", f"An error occurred during object detection: {str(e)}")
+            self.show_error(
+                "Detection Error",
+                f"An error occurred during object detection: {str(e)}",
+            )
             self.stop_detection()
 
     # Methods like update_upload_history, next_upload, previous_upload demonstrate
     # encapsulation by hiding the implementation details of history management
     def update_upload_history(self, file_path):
-        if hasattr(self, 'upload_history_text'):
+        if hasattr(self, "upload_history_text"):
             self.upload_history_text.config(state=tk.NORMAL)
-            self.upload_history_text.insert(tk.END, f"{strftime('%H:%M:%S')} - Uploaded: {os.path.basename(file_path)}\n")
+            self.upload_history_text.insert(
+                tk.END,
+                f"{strftime('%H:%M:%S')} - Uploaded: {os.path.basename(file_path)}\n",
+            )
             self.upload_history_text.see(tk.END)
             self.upload_history_text.config(state=tk.DISABLED)
 
     def next_upload(self):
-        if self.upload_history and self.current_upload_index < len(self.upload_history) - 1:
+        if (
+            self.upload_history
+            and self.current_upload_index < len(self.upload_history) - 1
+        ):
             self.current_upload_index += 1
             self.load_file(self.upload_history[self.current_upload_index])
 
@@ -703,7 +903,7 @@ class ObjectDetectorGUI:
     def save_current_frame(self):
         try:
             if self.current_frame is not None and self.current_filename is not None:
-                output_dir = os.path.join(os.path.dirname(__file__), 'output')
+                output_dir = os.path.join(os.path.dirname(__file__), "output")
                 os.makedirs(output_dir, exist_ok=True)
 
                 timestamp = strftime("%Y%m%d_%H%M%S")
@@ -718,7 +918,9 @@ class ObjectDetectorGUI:
             else:
                 messagebox.showwarning("No Image", "No image or video frame to save.")
         except Exception as e:
-            self.show_error("Save Error", f"An error occurred while saving the frame: {str(e)}")
+            self.show_error(
+                "Save Error", f"An error occurred while saving the frame: {str(e)}"
+            )
 
     # Methods like clear_display, quit_application, toggle_camera, etc., demonstrate
     # encapsulation by providing a clean interface to complex operations
@@ -749,7 +951,7 @@ class ObjectDetectorGUI:
             sys.exit()
 
     def toggle_camera(self):
-        if hasattr(self, 'camera_active') and self.camera_active:
+        if hasattr(self, "camera_active") and self.camera_active:
             self.stop_camera()
         else:
             self.start_camera()
@@ -777,7 +979,13 @@ class ObjectDetectorGUI:
             ret, frame = self.video_capture.read()
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)  # Convert to RGB
-                frame = cv2.resize(frame, (self.display_canvas.winfo_width(), self.display_canvas.winfo_height()))
+                frame = cv2.resize(
+                    frame,
+                    (
+                        self.display_canvas.winfo_width(),
+                        self.display_canvas.winfo_height(),
+                    ),
+                )
                 self.current_frame = frame
                 self.display_image(frame)
                 self.video_playback_id = self.window.after(30, self.play_camera_feed)
@@ -792,6 +1000,7 @@ class ObjectDetectorGUI:
         except Exception as e:
             self.show_error("Runtime Error", f"An unexpected error occurred: {str(e)}")
             sys.exit(1)
+
 
 # This block demonstrates the principle of encapsulation by providing a clean interface
 # to start the application
